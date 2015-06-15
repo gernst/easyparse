@@ -1,3 +1,7 @@
+// ARSE Parser libary
+// (c) 2015 Gidon Ernst
+// This code is licensed under MIT license (see LICENSE for details)
+
 package arse
 
 import control._
@@ -6,7 +10,7 @@ trait Primitive {
   this: Combinators =>
 
   implicit val string = __ ^^ { _.toString }
-  
+
   // implicit val boolean = lit("true", true) | lit("false", false)
   implicit val boolean = string ^^ { _.toBoolean.mask[IllegalArgumentException] }
   implicit val int = string ^^ { _.toInt.mask[NumberFormatException] }
@@ -35,7 +39,7 @@ trait Punctuation {
   this: Combinators =>
 
   import punctuation._
-  
+
   implicit val lparen = lit("(", LParen())
   implicit val rparen = lit(")", RParen())
   implicit val dot = lit(".", Dot())

@@ -1,3 +1,7 @@
+// ARSE Parser libary
+// (c) 2015 Gidon Ernst
+// This code is licensed under MIT license (see LICENSE for details)
+
 package arse
 
 import punctuation._
@@ -20,13 +24,13 @@ case class App(args: List[Expr]) extends Expr {
 
 object Lisp extends Combinators with Primitive with Punctuation with Collections {
   type Token = String
-  
+
   implicit val expr_r = rec(expr)
   // implicit val exprs = rec(expr *)
 
   val id = parse(Id)
   val num = parse(Num)
-  val app = lit("(") ~> parse(App) <~ lit(")") 
+  val app = lit("(") ~> parse(App) <~ lit(")")
   val expr: Parser[Expr] = app | num | id
 }
 

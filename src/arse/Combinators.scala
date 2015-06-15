@@ -1,3 +1,7 @@
+// ARSE Parser libary
+// (c) 2015 Gidon Ernst
+// This code is licensed under MIT license (see LICENSE for details)
+
 package arse
 
 import control._
@@ -18,7 +22,7 @@ trait Combinators {
         val (b, in2) = that(in1)
         ((a, b), in2)
     }
-    
+
     def ~>[B](that: Parser[B]) = (this ~ that) ^^ { _._2 }
     def <~[B](that: Parser[B]) = (this ~ that) ^^ { _._1 }
 
