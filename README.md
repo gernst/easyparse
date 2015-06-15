@@ -21,9 +21,9 @@ and function application:
 This definition corresponds (almost) directly to the following attributed grammar:
 
     expr := id | num | app
-    id   := string        { Id(_)     }
-    num  := int           { Num(_)    }
-    app  := "(" expr* ")" { App(_, _) }
+    id   := string        { Id(_)  }
+    num  := int           { Num(_) }
+    app  := "(" expr* ")" { App(_) }
 
 The aim of this library is to minimize the fuss to create a parser for such a
 language. The main idea is that, given a parser for the arguments of a case
