@@ -2,6 +2,7 @@ ARSE Library
 ============
 
 Libary for *automatic recovery of syntactic elements*.
+LL parsing for case classes made simple.
 
 Author: Gidon Ernst <gidonernst@gmail.com>
 
