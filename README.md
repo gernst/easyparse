@@ -3,6 +3,8 @@ ARSE Library
 
 Libary for *automatic recovery of syntactic elements*.
 
+Author: Gidon Ernst <gidonernst@gmail.com>
+
 Motivation & Overview
 ---------------------
 
