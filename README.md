@@ -54,11 +54,11 @@ Implementation
 --------------
 
 Trait `Combinators` is extended to use parsers. One has to specify the abstract
-type `Token`, which corresponds to `Elem` in Scala's parser combinator library.
+type `T`, which corresponds to `Elem` in Scala's parser combinator library.
 Two canonical choices are `String` and `arse.Token`.
 
-A `Parser[+A]` is essentially a function `Input => (A, Input)`,
-where `type Input = Seq[Token]`.
+A `Parser[T,+A]` is essentially a function `Input => (A, Input)`,
+where `type Input = Seq[T]`.
 
 Parsers are allowed to backtrack, which is implemented via non-local goto using
 exceptions of type `Backtrack`. As an example, the choice combinator roughly
@@ -75,9 +75,9 @@ Reference
 Terminals/atomic parsers
 
 - `__`: accept and return the next token unconditionally
-- `lit(t: Token)`:  accept and return token `t` if `t` is at the current position in the input
+- `lit(t: T)`:  accept and return token `t` if `t` is at the current position in the input
 - `lit(s: String)`: accept a token `t` with `t.toString == s` and return `s`
-- `lit[A](t: Token, a: A)`:  accept `t` and return `a`
+- `lit[A](t: T, a: A)`:  accept `t` and return `a`
 - `lit[A](s: String, a: A)`: similarly
 - `ret[A](a: A)` return `a` without consuming any input
 
@@ -90,6 +90,7 @@ Compound parsers
 - `p1 ~ p2`: sequential composition returning a standard Scala pair
 - `p1 ~> p2`: sequential composition discarding the result of `p1`
 - `p1 <~ p2`: sequential composition discarding the result of `p2`
+- `p1 >> fp2`: feed the result of `p1` to `fp2: A => Parser[B]`
 - `p ^^ f`: map the result of `p` by function `f`
 
 Not implemented yet
