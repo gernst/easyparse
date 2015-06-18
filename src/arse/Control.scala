@@ -14,6 +14,9 @@ object control {
   case class Error(override val toString: String) extends Exception
   case class Fatal(override val toString: String) extends Exception
 
+  def none: Option[Nothing] = None
+  def some[A](a: A): Option[A] = Some(a)
+  
   def fail = throw Fail
   def error(msg: String) = throw Error(msg)
   def fatal(msg: String) = throw Fatal(msg)
