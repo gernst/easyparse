@@ -18,11 +18,8 @@ trait Mixfix extends Combinators {
   def postfix_op(lower: Int, upper: Int): Parser[T, (Op, Int)]
   def infix_op(lower: Int, upper: Int): Parser[T, (Op, Int, Assoc)]
 
-  def apply(op: Op, args: Seq[Expr]): Expr
-  def unary(op: Op, arg: Expr) = apply(op, List(arg))
-  def binary(op: Op, arg1: Expr, arg2: Expr) = apply(op, List(arg1, arg2))
-
-  val normal_app = parse(apply _)(inner_op, inner_arg *)
+  def unary(op: Op, arg: Expr): Expr
+  def binary(op: Op, arg1: Expr, arg2: Expr): Expr
 
   def prefix_app(lower: Int) = {
     prefix_op(lower) >> {
@@ -56,7 +53,7 @@ trait Mixfix extends Combinators {
   }
 
   def mixfix_arg(lower: Int) = {
-    prefix_app(lower) | normal_app
+    prefix_app(lower) | inner_arg
   }
 
   def mixfix_app(lower: Int): Parser[T, Expr] = {
