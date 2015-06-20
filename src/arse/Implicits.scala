@@ -18,8 +18,9 @@ trait Primitives {
 
 trait Collections {
   this: Combinators =>
+
   implicit def option[A](implicit p: Parser[T, A]) = p ?
-  implicit def seq[A](implicit p: Parser[T, A]) = p *
+  implicit def list[A](implicit p: Parser[T, A]) = p *
 }
 
 object Punctuation {
@@ -33,7 +34,7 @@ object Punctuation {
   case class Colon()
   case class Semicolon()
   case class Equals()
-
+  case class Pipe()
 }
 
 trait Punctuation {
@@ -51,5 +52,6 @@ trait Punctuation {
   implicit def colon = lit(":", Colon())
   implicit def semicolon = lit(";", Semicolon())
   implicit def equals = lit("=", Equals())
+  implicit def pipe = lit("|", Pipe())
 
 }
