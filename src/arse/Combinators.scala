@@ -2,7 +2,7 @@ package arse
 
 import control._
 
-trait Parser[T, +A] extends (Seq[T] => (A, Seq[T])) {
+trait Parser[T, +A] extends (List[T] => (A, List[T])) {
   def |[B >: A](that: Parser[T, B]): Parser[T, B]
   def ~[B](that: Parser[T, B]): Parser[T, (A, B)]
   def ~>[B](that: Parser[T, B]): Parser[T, B]
@@ -10,12 +10,14 @@ trait Parser[T, +A] extends (Seq[T] => (A, Seq[T])) {
   def >>[B](that: A => Parser[T, B]): Parser[T, B]
   def ^^[B](f: A => B): Parser[T, B]
   def ?(): Parser[T, Option[A]]
-  def *(): Parser[T, Seq[A]]
+  def *(): Parser[T, List[A]]
+  def filter(p: A => Boolean): Parser[T, A]
+  def filterNot(p: A => Boolean): Parser[T, A]
 }
 
 trait Combinators {
   type T
-  type Input = Seq[T]
+  type Input = List[T]
 
   trait ParserImpl[+A] extends Parser[T, A] {
     def |[B >: A](that: Parser[T, B]) = lift {
@@ -49,6 +51,9 @@ trait Combinators {
     // def !(msg: String) = this | ret(error(msg))
     def * = lift { map(this, _: Input) }
     // def + = this ~ this.* ^^ { case (a, as) => a :: as }
+
+    def filter(p: A => Boolean) = this ^^ { a => if (p(a)) a else fail }
+    def filterNot(p: A => Boolean) = this ^^ { a => if (!p(a)) a else fail }
   }
 
   def lift[A](f: Input => (A, Input)): Parser[T, A] = new ParserImpl[A]() {
@@ -71,6 +76,13 @@ trait Combinators {
 
   def rec[A](p: => Parser[T, A]) = lift { p(_) }
 
+  def repsep[A, B](p: Parser[T, A], q: Parser[T, B]) =
+    {
+      p ~ (q ~ p).* ^^ { case (a, abs) => a +: abs.map(_._2) }
+    } | {
+      ret(Nil)
+    }
+
   private def map[A](p: Parser[T, A], in0: Input): (List[A], Input) =
     {
       val (a, in1) = p(in0)
@@ -79,7 +91,6 @@ trait Combinators {
     } or {
       (Nil, in0)
     }
-
 }
 
 object Combinators {
