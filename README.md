@@ -41,13 +41,13 @@ The method `parse` takes a function as argument and for each of its parameter
 types an implicit parameter to specify the corresponding parser.
 For instance:
 
-    def parse[A,R](f: A => R)(implicit p: Parser[A]) = p ^^ f
+    def parse[A,R](f: A => R)(implicit p: Parser[A]) = p map f
 
-where `p ^^ f` denotes mapping the result of `p` by `f`.
+where `p map f` denotes applying `f` to the result of `p`.
 
 The library already provides parsers for the primitive types such as `String`,
-`Boolean`, and `Int` alongside lifting of parsers to lists (as required for the
-production `app`).
+`Boolean`, and `Int` alongside lifting of parsers to options and lists
+(as required for the production `app`).
 
 Recursion is implemented in the `rec` combinator, which defers evaluation of its
 argument. Note that `expr_r` is an implicit value, so that the production `app`
@@ -61,7 +61,7 @@ type `T`, which corresponds to `Elem` in Scala's parser combinator library.
 Two canonical choices are `String` and `arse.Token`.
 
 A `Parser[T,+A]` is essentially a function `Input => (A, Input)`,
-where `type Input = Seq[T]`.
+where `type Input = List[T]`.
 
 Parsers are allowed to backtrack, which is implemented via non-local goto using
 exceptions of type `Backtrack`. As an example, the choice combinator roughly
@@ -110,10 +110,9 @@ Not implemented yet
 
 Predefined parsers:
 
-- `trait Primitive`: implicit parsers for primitive Scala values `Boolean`,
-  `String`, `Int`, `Long`, `Float`, and `Double`
-- `trait Collection`: implicit parsers for `Seq` and `Option`
-- `trait Punctuation`: ...
+- `trait Primitive`: implicit parsers for primitive Scala values
+     `Boolean`, `String`, `Int`, `Long`, `Float`, and `Double`
+- `trait Collection`: implicit parsers for `List` and `Option`
 
 Constructing parsers for case classes:
 
