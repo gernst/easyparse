@@ -1,3 +1,7 @@
+// ARSE Parser libary
+// (c) 2015 Gidon Ernst <gidonernst@gmail.com>
+// This code is licensed under MIT license (see LICENSE for details)
+
 package arse
 
 object Generate {
@@ -7,7 +11,7 @@ object Generate {
     // def parse[A1, ..., An, R](f: (A1, ..., An, B) => R)
     //                          (implicit p1: Parser[A1], ..., pn: Parser[An])
     //     = (p1 ~ ... ~ pn) ^^ { case ((a1, ...), an) => f(a1, ..., an) }
-    
+
     val is = 1 to n
     val as = is map { "a" + _ }
     val As = is map { "A" + _ }

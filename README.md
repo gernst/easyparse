@@ -2,6 +2,9 @@ ARSE Library
 ============
 
 Libary for *automatic recovery of syntactic elements*.
+LL parsing for case classes made simple.
+
+Author: Gidon Ernst <gidonernst@gmail.com>
 
 Motivation & Overview
 ---------------------
@@ -18,9 +21,9 @@ and function application:
 This definition corresponds (almost) directly to the following attributed grammar:
 
     expr := id | num | app
-    id   := string        { Id(_)     }
-    num  := int           { Num(_)    }
-    app  := "(" expr* ")" { App(_, _) }
+    id   := string        { Id(_)  }
+    num  := int           { Num(_) }
+    app  := "(" expr* ")" { App(_) }
 
 The aim of this library is to minimize the fuss to create a parser for such a
 language. The main idea is that, given a parser for the arguments of a case
@@ -85,7 +88,7 @@ Compound parsers
 
 - `rec(p)`: defer evaluation of `p` to its first use, for recursive parsers
 - `p ?`: try to parse `p`, return an `Option`
-- `p *`: greedily parse a zero or more occurrences of `p`, returning a `List`
+- `p *`: greedily parse zero or more occurrences of `p`, returning a `List`
 - `p1 | p2`: choice with preference for `p1`
 - `p1 ~ p2`: sequential composition returning a standard Scala pair
 - `p1 ~> p2`: sequential composition discarding the result of `p1`
@@ -122,6 +125,10 @@ Limitations
 No left recursion. The plan is to implement Pratt style precedence parsing,
 which is simple yet effective for mixfix operators: prefix, postfix, and infix
 will be supported initially.
+
+The [combinator](https://github.com/scala/scala-parser-combinators)
+library (no longer) shipped with Scala is much more feature complete and supports
+left recursion by packrat parsing.
 
 No measurements on efficiency so far, but the library is probably rather slow.
 If you need speed, try a LALR parser generator instead, such as
