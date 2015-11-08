@@ -83,6 +83,7 @@ Terminals/atomic parsers
 - `lit[A](t: T, a: A)`:  accept `t` and return `a`
 - `lit[A](s: String, a: A)`: similarly
 - `ret[A](a: A)` return `a` without consuming any input
+- `next f`: equivalent to `__ map f` (see below)
 
 Compound parsers
 
@@ -125,12 +126,33 @@ Non-local control flow, `import arse.control._`
 - `a or b`: try `a`, if it throws `Backtrack`, try `b` instead (otherwise `b` is
   not evaluated)
 
+Mixfix Operator Parsing
+-----------------------
+
+The trait `Mixfix` implements
+[Pratt](https://en.wikipedia.org/wiki/Pratt_parser)-style parsers.
+It has the following parameters
+
+- `type Op`: the type of operators
+- `type Expr`: the type of expressions
+- `pre/post/infix_op`:
+  parse an operator of the given kind, returning its precedence
+  (and associativity)
+- `inner_expr`: anything that binds stronger than mixfix operators
+- `unary` and `binary` expression constructors
+
+Note that it is possible to overload operators in the different categories,
+the parsing algorithm can discern e.g. between unary and binary `-` (minus).
+Postfix takes precedence over infix,
+i.e., parsing repetition `*` will precede binary multiplication.
+
+See also:
+
+- <http://javascript.crockford.com/tdop/tdop.html>
+- <http://www.engr.mun.ca/~theo/Misc/exp_parsing.htm>
+
 Limitations
 -----------
-
-No left recursion. The plan is to implement Pratt style precedence parsing,
-which is simple yet effective for mixfix operators: prefix, postfix, and infix
-will be supported initially.
 
 The [combinator](https://github.com/scala/scala-parser-combinators)
 library (no longer) shipped with Scala is much more feature complete and supports
