@@ -1,10 +1,11 @@
 package arse
 
 import scala.reflect.ClassTag
+import scala.annotation.Annotation
 
 object control {
   trait Backtrack extends Throwable
-
+  
   case object Fail extends Backtrack {
     override def toString = "<generic failure>"
     override def fillInStackTrace = this
@@ -17,7 +18,7 @@ object control {
   def none: Option[Nothing] = None
   def some[A](a: A): Option[A] = Some(a)
   
-  def fail = throw Fail
+  def fail = throw new Backtrack() { } // Fail
   def error(msg: String) = throw Error(msg)
   def fatal(msg: String) = throw Fatal(msg)
 
