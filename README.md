@@ -89,16 +89,22 @@ Compound parsers
 - `rec(p)`: defer evaluation of `p` to its first use, for recursive parsers
 - `p ?`: try to parse `p`, return an `Option`
 - `p *`: greedily parse zero or more occurrences of `p`, returning a `List`
+- `p +`: greedily parse one or more occurrences of `p`, returning a `List`
 - `p1 | p2`: choice with preference for `p1`
 - `p1 ~ p2`: sequential composition returning a standard Scala pair
 - `p1 ~> p2`: sequential composition discarding the result of `p1`
 - `p1 <~ p2`: sequential composition discarding the result of `p2`
 - `p1 >> fp2`: feed the result of `p1` to `fp2: A => Parser[B]`
-- `p ^^ f`: map the result of `p` by function `f`
+- `p map f`: map the result of `p` by function `f`
+- `p foreach f`: similar to `map` but without result
+- `p collect f`: similar to `map` but with partial function `f`
+- `p filter[Not] f`: test result of `p` by predicate `f`, fail if it is not desired
+- `p ! msg`: make `p` strict, failure is turned into an error with a given message `msg`
+- `p $`: force end of input
+- `repsep(p, q)`: parse a sequence of `p` separated by `p`
 
 Not implemented yet
 
-- `repsep(p, q)`: parse a sequence of `p` separated by `p`
 - `repsep1(p, q)`: as above but guarantee at least one occurence of `p`
 
 Predefined parsers:
