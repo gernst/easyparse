@@ -143,7 +143,9 @@ It has the following parameters
 Note that it is possible to overload operators in the different categories,
 the parsing algorithm can discern e.g. between unary and binary `-` (minus).
 Infix takes precedence over postfix,
-i.e., parsing repetition `*` will precede binary multiplication.
+i.e., parsing repetition `*` will precede binary multiplication
+only if the postfix priority of `*` is high enough to prohbibit a right argument
+(at the given source location).
 
 See also:
 
