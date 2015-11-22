@@ -11,7 +11,7 @@ trait Primitives {
 
   implicit def string = __ map { _.toString }
 
-  // implicit def boolean = lit_]("true", true) | lit_]("false", false)
+  // implicit def boolean = lit("true", true) | lit("false", false)
   implicit def boolean = string map { _.toBoolean.mask[IllegalArgumentException] }
   implicit def int = string map { _.toInt.mask[NumberFormatException] }
   implicit def long = string map { _.toLong.mask[NumberFormatException] }

@@ -10,7 +10,7 @@ object Generate {
   def gen(n: Int) = {
     // def parse[A1, ..., An, R](f: (A1, ..., An, B) => R)
     //                          (implicit p1: Parser[A1], ..., pn: Parser[An])
-    //     = (p1 ~ ... ~ pn) ^^ { case ((a1, ...), an) => f(a1, ..., an) }
+    //     = (p1 ~ ... ~ pn) map { case ((a1, ...), an) => f(a1, ..., an) }
 
     val is = 1 to n
     val as = is map { "a" + _ }
@@ -26,7 +26,7 @@ object Generate {
     res append Ps.mkString("(implicit ", ", ", ")")
     res append " = "
     res append ps.mkString("(", " ~ ", ")")
-    res append " ^^ { case "
+    res append " map { case "
     res append as.tail.foldLeft(as.head) { case (a1, a2) => "(" + a1 + ", " + a2 + ")" }
     res append " => "
     res append as.mkString("f(", ", ", ")")
