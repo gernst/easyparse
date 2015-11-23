@@ -82,7 +82,7 @@ Terminals/atomic parsers
 - `lit(s: String)`: accept a token `t` with `t.toString == s` and return `s`
 - `lit[A](t: T, a: A)`:  accept `t` and return `a`
 - `lit[A](s: String, a: A)`: similarly
-- `ret[A](a: A)` return `a` without consuming any input
+- `ret[A](a: A)` return `a` without consuming any input (Parser Monad *return*)
 - `next f`: equivalent to `__ map f` (see below)
 
 Compound parsers
@@ -95,7 +95,7 @@ Compound parsers
 - `p1 ~ p2`: sequential composition returning a standard Scala pair
 - `p1 ~> p2`: sequential composition discarding the result of `p1`
 - `p1 <~ p2`: sequential composition discarding the result of `p2`
-- `p1 >> fp2`: feed the result of `p1` to `fp2: A => Parser[B]`
+- `p1 >> fp2`: feed the result of `p1` to `fp2: A => Parser[B]` (Parser Monad *bind*)
 - `p map f`: map the result of `p` by function `f`
 - `p foreach f`: similar to `map` but without result
 - `p collect f`: similar to `map` but with partial function `f`
@@ -144,13 +144,14 @@ Note that it is possible to overload operators in the different categories,
 the parsing algorithm can discern e.g. between unary and binary `-` (minus).
 Infix takes precedence over postfix,
 i.e., parsing repetition `*` will precede binary multiplication
-only if the postfix priority of `*` is high enough to prohbibit a right argument
+only if the postfix priority of `*` is high enough to prohibit a right argument
 (at the given source location).
 
 See also:
 
 - <http://javascript.crockford.com/tdop/tdop.html>
 - <http://www.engr.mun.ca/~theo/Misc/exp_parsing.htm>
+- <www.cs.nott.ac.uk/~pszgmh/monparsing.pdf> (about the Parser Monad)
 
 Limitations
 -----------
