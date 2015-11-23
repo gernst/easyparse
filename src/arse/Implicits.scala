@@ -9,15 +9,15 @@ import control._
 trait Primitives {
   this: Combinators =>
 
-  implicit def string = __ map { _.toString }
+  implicit val string = __ map { _.toString }
 
-  // implicit def boolean = lit("true", true) | lit("false", false)
-  implicit def boolean = string map { _.toBoolean.mask[IllegalArgumentException] }
-  implicit def int = string map { _.toInt.mask[NumberFormatException] }
-  implicit def long = string map { _.toLong.mask[NumberFormatException] }
-  implicit def float = string map { _.toFloat.mask[NumberFormatException] }
-  implicit def double = string map { _.toDouble.mask[NumberFormatException] }
-  implicit def bigint = string map { BigInt(_).mask[NumberFormatException] }
+  // implicit val boolean = lit("true", true) | lit("false", false)
+  implicit val boolean = string map { _.toBoolean.mask[IllegalArgumentException] }
+  implicit val int = string map { _.toInt.mask[NumberFormatException] }
+  implicit val long = string map { _.toLong.mask[NumberFormatException] }
+  implicit val float = string map { _.toFloat.mask[NumberFormatException] }
+  implicit val double = string map { _.toDouble.mask[NumberFormatException] }
+  implicit val bigint = string map { BigInt(_).mask[NumberFormatException] }
 }
 
 trait Collections {
@@ -30,15 +30,15 @@ trait Collections {
 trait Punctuation {
   this: Combinators =>
 
-  def lparen = lit("(")
-  def rparen = lit(")")
-  def lbrack = lit("[")
-  def rbrack = lit("]")
-  def lbrace = lit("{")
-  def rbrace = lit("}")
-  def dot = lit(".")
-  def colon = lit(":")
-  def semicolon = lit(";")
-  def equals = lit("=")
-  def pipe = lit("|")
+  val lparen = lit("(")
+  val rparen = lit(")")
+  val lbrack = lit("[")
+  val rbrack = lit("]")
+  val lbrace = lit("{")
+  val rbrace = lit("}")
+  val dot = lit(".")
+  val colon = lit(":")
+  val semicolon = lit(";")
+  val equals = lit("=")
+  val pipe = lit("|")
 }
