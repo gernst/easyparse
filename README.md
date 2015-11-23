@@ -151,7 +151,7 @@ See also:
 
 - <http://javascript.crockford.com/tdop/tdop.html>
 - <http://www.engr.mun.ca/~theo/Misc/exp_parsing.htm>
-- <www.cs.nott.ac.uk/~pszgmh/monparsing.pdf> (about the Parser Monad)
+- <http://www.cs.nott.ac.uk/~pszgmh/monparsing.pdf> (about the Parser Monad)
 
 Limitations
 -----------
