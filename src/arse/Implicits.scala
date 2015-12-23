@@ -23,8 +23,8 @@ trait Primitives {
 trait Collections {
   this: Combinators =>
 
-  implicit def option[A](implicit p: Parser[T, A]) = p ?
-  implicit def list[A](implicit p: Parser[T, A]) = p *
+  implicit def option[A](implicit p: Parser[T, A]) = p.?
+  implicit def list[A](implicit p: Parser[T, A]) = p.*
 }
 
 trait Punctuation {
