@@ -6,6 +6,8 @@ LL parsing for case classes made simple.
 
 Author: Gidon Ernst <gidonernst@gmail.com>
 
+Feedback is welcome! I'd appreciate to hear whether anyone found this library useful.
+
 Motivation & Overview
 ---------------------
 
@@ -79,7 +81,7 @@ Terminals/atomic parsers
 
 - `__`: accept and return the next token unconditionally
 - `lit(t: T)`:  accept and return token `t` if `t` is at the current position in the input
-- `lit(s: String)`: accept a token `t` with `t.toString == s` and return `s`
+- `lit(s: String)`: accept a token `t` with `t.toString == s` and return `t`
 - `lit[A](t: T, a: A)`:  accept `t` and return `a`
 - `lit[A](s: String, a: A)`: similarly
 - `ret[A](a: A)` return `a` without consuming any input (Parser Monad *return*)
@@ -117,7 +119,7 @@ Predefined parsers:
 Constructing parsers for case classes:
 
 - `parse(f: (A1, ..., An) => R)`: lift a function `f` with `n` arguments to a
-  parser; given parsers for `A1, ..., An` as implicit parameters
+  parser; given parsers for `A1, ..., An` as implicit (or explicit) parameters
 
 Non-local control flow, `import arse.control._`
 
@@ -152,6 +154,9 @@ See also:
 - <http://javascript.crockford.com/tdop/tdop.html>
 - <http://www.engr.mun.ca/~theo/Misc/exp_parsing.htm>
 - <http://www.cs.nott.ac.uk/~pszgmh/monparsing.pdf> (about the Parser Monad)
+- Project [ulang](https://github.com/gernst/ulang) for a larger example
+  (`source/Parser.scala` in branch *master*
+   resp. `source/Grammar.scala` in *refactor-parser*)
 
 Limitations
 -----------

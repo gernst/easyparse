@@ -6,8 +6,14 @@ package arse
 
 import control._
 
+object Mixfix {
+  def nprec(assoc: Assoc, prec: Int) = if (assoc == Left) prec else prec - 1
+  def rprec(assoc: Assoc, prec: Int) = if (assoc == Right) prec else prec + 1
+}
+
 trait Mixfix extends Combinators {
   import Combinators._
+  import Mixfix._
 
   type Op
   type Expr
@@ -36,9 +42,6 @@ trait Mixfix extends Combinators {
     if(prec < lower || upper < prec) fail
     postinfix_app(lower, prec, unary(op, left), in1)
   }
-
-  private def nprec(assoc: Assoc, prec: Int) = if (assoc == Left) prec else prec - 1
-  private def rprec(assoc: Assoc, prec: Int) = if (assoc == Right) prec else prec + 1
 
   def infix_app(lower: Int, upper: Int, left: Expr, in0: Input) = {
     val ((op, (assoc, prec)), in1) = infix_op(in0)

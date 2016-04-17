@@ -87,6 +87,7 @@ trait Combinators {
   def tok(t: T) = next { s => if (t == s) t else fail }
   def tok[A](t: T, a: A) = next { s => if (t == s) a else fail }
 
+  def act[A](f: => A) = lift { (f, _) }
   def rec[A](p: => Parser[T, A]) = lift { p(_) }
 
   def repsep[A, B](p: Parser[T, A], q: Parser[T, B]) =
