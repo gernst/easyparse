@@ -4,8 +4,6 @@
 
 package arse
 
-import control._
-
 object Mixfix {
   def nprec(assoc: Assoc, prec: Int) = if (assoc == Left) prec else prec - 1
   def rprec(assoc: Assoc, prec: Int) = if (assoc == Right) prec else prec + 1

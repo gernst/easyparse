@@ -2,12 +2,10 @@
 // (c) 2016 Gidon Ernst <gidonernst@gmail.com>
 // This code is licensed under MIT license (see LICENSE for details)
 
-package arse
-
 import scala.reflect.ClassTag
 import scala.annotation.Annotation
 
-object control {
+package object arse {
   trait Backtrack extends Throwable
   
   case object Fail extends Backtrack {

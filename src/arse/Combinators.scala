@@ -4,7 +4,6 @@
 
 package arse
 
-import control._
 import scala.annotation.tailrec
 
 trait Parser[T, +A] extends (List[T] => (A, List[T])) {

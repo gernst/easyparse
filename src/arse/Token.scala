@@ -4,14 +4,6 @@
 
 package arse
 
-case class Location(source: String, range: Range) {
-  def this(source: String, start: Int, end: Int) = this(source, start until end)
-  def ++(that: Location) = {
-    assert(this.source == that.source)
-    Location(source, this.range.start until that.range.end)
-  }
-}
-
-case class Token(text: String, location: Location) {
+case class Token(text: String, start: Int) {
   override def toString = text
 }

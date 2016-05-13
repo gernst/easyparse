@@ -4,8 +4,6 @@
 
 package arse
 
-import control._
-
 trait MixfixPlus extends Combinators {
   import Combinators._
 

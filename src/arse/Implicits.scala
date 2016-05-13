@@ -4,8 +4,6 @@
 
 package arse
 
-import control._
-
 trait Primitives {
   this: Combinators =>
 
