@@ -40,11 +40,10 @@ trait Parser[T, +A] extends (List[T] => (A, List[T])) {
   }
 
   def ? = (this map Some.apply) | ret(None)
+  def * = parse { Parser.rep(this, _: List[T]) }
+  def + = lift[T, A, List[A], List[A]](this, _ :: _, this.*)
 
   /*  def !(msg: String) = this | parse { in => error(msg + in.take(12).mkString(" at '", " ", "...'")) }
-    def * = parse { sequence(this, _: Input) }
-    def + = (this ~ this.*) map { case (a, as) => a :: as }
-    // def + = this ~ this.* map { case (a, as) => a :: as }
   def $ = this ~ eof */
 
   def foreach(f: A => Unit) = this map { a => f(a); a }
@@ -69,6 +68,30 @@ object Parser {
 
   def rec[T, A](p: Parser[T, A]): Parser[T, A] = parse {
     in => p(in)
+  }
+
+  def rep[T, A](p: Parser[T, A], in0: List[T]): (List[A], List[T]) = {
+    val (a, in1) = p(in0)
+    val (as, in2) = rep(p, in1)
+    (a :: as, in2)
+  } or {
+    (Nil, in0)
+  }
+
+  def repsep[T, A](p: Parser[T, A], s: Recognizer[T], in0: List[T]): (List[A], List[T]) = {
+    val (a, in1) = p(in0)
+
+    {
+      val in2 = s(in1)
+      val (as, in3) = repsep(p, s, in2)
+      (a :: as, in3)
+    } or {
+      (List(a), in1)
+    }
+  }
+
+  def lift[T, A, B, C](p: Parser[T, A], f: (A, B) => C, q: Parser[T, B]): Parser[T, C] = {
+    (p ~ q) map f.tupled
   }
 
   def __[T] = parse[T, T] {

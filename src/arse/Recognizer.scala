@@ -28,6 +28,8 @@ trait Recognizer[T] extends (List[T] => List[T]) {
   }
 
   def ? = this | skip
+  def * = accept { Recognizer.rep(this, _: List[T]) }
+  def + = this ~ this.*
 }
 
 object Recognizer {
@@ -47,4 +49,13 @@ object Recognizer {
   def rec[T](p: Recognizer[T]): Recognizer[T] = accept {
     in => p(in)
   }
+
+  def rep[T](p: Recognizer[T], in0: List[T]): List[T] = {
+    val in1 = p(in0)
+    val in2 = rep(p, in1)
+    in2
+  } or {
+    in0
+  }
+
 }
