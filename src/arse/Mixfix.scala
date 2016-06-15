@@ -4,51 +4,58 @@
 
 package arse
 
-object Mixfix {
-  def nprec(assoc: Assoc, prec: Int) = if (assoc == Left) prec else prec - 1
-  def rprec(assoc: Assoc, prec: Int) = if (assoc == Right) prec else prec + 1
+sealed trait Assoc
+case object Non extends Assoc
+case object Left extends Assoc
+case object Right extends Assoc
+
+trait Fixity
+case object Nilfix extends Fixity
+case class Prefix(prec: Int) extends Fixity
+case class Postfix(prec: Int) extends Fixity
+case class Infix(assoc: Assoc, prec: Int) extends Fixity
+
+trait Syntax[T, O] {
+  def prefix_ops: Map[T, (O, Int)]
+  def postfix_ops: Map[T, (O, Int)]
+  def infix_ops: Map[T, (O, (Assoc, Int))]
 }
 
-trait Mixfix extends Combinators {
-  import Combinators._
+trait Mixfix[T, O, E] extends Parser[T, E] {
   import Mixfix._
+  import Parser._
 
-  type Op
-  type Expr
+  def inner_expr: Parser[T, E]
+  def apply(op: O, args: List[E]): E
 
-  def Min = 0
-  def Max = Int.MaxValue
+  def prefix_op: Parser[T, (O, Int)]
+  def postfix_op: Parser[T, (O, Int)]
+  def infix_op: Parser[T, (O, (Assoc, Int))]
 
-  val inner_expr: Parser[T, Expr]
+  def unary(op: O, arg: E) = apply(op, List(arg))
+  def binary(op: O, arg1: E, arg2: E) = apply(op, List(arg1, arg2))
 
-  def prefix_op: Parser[T, (Op, Int)]
-  def postfix_op: Parser[T, (Op, Int)]
-  def infix_op: Parser[T, (Op, (Assoc, Int))]
-
-  def unary(op: Op, arg: Expr): Expr
-  def binary(op: Op, arg1: Expr, arg2: Expr): Expr
-
-  def prefix_app(lower: Int, in0: Input) = {
+  def prefix_app(lower: Int, in0: List[T]) = {
     val ((op, prec), in1) = prefix_op(in0)
-    if(prec < lower) fail
+    if (prec < lower) fail
     val (right, in2) = mixfix_app(prec, in1)
     (unary(op, right), in2)
   }
 
-  def postfix_app(lower: Int, upper: Int, left: Expr, in0: Input) = {
+  def postfix_app(lower: Int, upper: Int, left: E, in0: List[T]) = {
     val ((op, prec), in1) = postfix_op(in0)
-    if(prec < lower || upper < prec) fail
+    if (prec < lower || upper < prec) fail
     postinfix_app(lower, prec, unary(op, left), in1)
   }
 
-  def infix_app(lower: Int, upper: Int, left: Expr, in0: Input) = {
+  def infix_app(lower: Int, upper: Int, left: E, in0: List[T]) = {
     val ((op, (assoc, prec)), in1) = infix_op(in0)
-    if(prec < lower || upper < prec) fail
+    if (prec < lower || upper < prec) fail
     val (right, in2) = mixfix_app(rprec(assoc, prec), in1)
     postinfix_app(lower, nprec(assoc, prec), binary(op, left, right), in2)
   }
 
-  def postinfix_app(lower: Int, upper: Int, left: Expr, in: Input): (Expr, Input) = {
+  def postinfix_app(lower: Int, upper: Int, left: E, in: List[T]): (E, List[T]) = {
     {
       infix_app(lower, upper, left, in)
     } or {
@@ -58,7 +65,7 @@ trait Mixfix extends Combinators {
     }
   }
 
-  def mixfix_arg(lower: Int, in: Input) = {
+  def mixfix_arg(lower: Int, in: List[T]) = {
     {
       prefix_app(lower, in)
     } or {
@@ -66,10 +73,40 @@ trait Mixfix extends Combinators {
     }
   }
 
-  def mixfix_app(lower: Int, in0: Input): (Expr, Input) = {
+  def mixfix_app(lower: Int, in0: List[T]): (E, List[T]) = {
     val (left, in1) = mixfix_arg(lower, in0)
     postinfix_app(lower, Max, left, in1)
   }
 
-  val mixfix_expr: Parser[T, Expr] = lift { mixfix_app(Min, _) }
+  def apply(in: List[T]) = mixfix_app(Min, in)
+}
+
+object Mixfix {
+  import Parser._
+  import Recognizer._
+
+  def nprec(assoc: Assoc, prec: Int) = if (assoc == Left) prec else prec - 1
+  def rprec(assoc: Assoc, prec: Int) = if (assoc == Right) prec else prec + 1
+
+  def Min = 0
+  def Max = Int.MaxValue
+
+  def mixfix[T, O, E](p: Parser[T, E], ap: (O, List[E]) => E, s: Syntax[T, O]): Parser[T, E] = new Mixfix[T, O, E]() {
+    def inner_expr = p
+    def apply(op: O, args: List[E]) = ap(op, args)
+
+    def prefix_op = mixfix_op(s.prefix_ops)
+    def postfix_op = mixfix_op(s.postfix_ops)
+    def infix_op = mixfix_op(s.infix_ops)
+  }
+
+  def mixfix_op[T, A](m: Map[T, A]): Parser[T, A] = parse[T, A] {
+    case a :: in if m contains a => (m(a), in)
+    case _                       => fail
+  }
+
+  def mixfix_op[T](s: Set[T]): Recognizer[T] = accept[T] {
+    case a :: in if s contains a => in
+    case _                       => fail
+  }
 }
