@@ -16,9 +16,9 @@ case class Postfix(prec: Int) extends Fixity
 case class Infix(assoc: Assoc, prec: Int) extends Fixity
 
 trait Syntax[T, O] {
-  def prefix_ops: Map[T, (O, Int)]
-  def postfix_ops: Map[T, (O, Int)]
-  def infix_ops: Map[T, (O, (Assoc, Int))]
+  def prefix_ops: Map[T, Int]
+  def postfix_ops: Map[T, Int]
+  def infix_ops: Map[T, (Assoc, Int)]
 }
 
 trait Mixfix[T, O, E] extends Parser[T, E] {
@@ -91,22 +91,22 @@ object Mixfix {
   def Min = 0
   def Max = Int.MaxValue
 
-  def mixfix[T, O, E](p: Parser[T, E], ap: (O, List[E]) => E, s: Syntax[T, O]): Parser[T, E] = new Mixfix[T, O, E]() {
-    def inner_expr = p
+  def mixfix[T, O, E](p: => Parser[T, E], op: T => O, ap: (O, List[E]) => E, s: Syntax[T, O]): Parser[T, E] = new Mixfix[T, O, E]() {
+    lazy val inner_expr = p
     def apply(op: O, args: List[E]) = ap(op, args)
 
-    def prefix_op = mixfix_op(s.prefix_ops)
-    def postfix_op = mixfix_op(s.postfix_ops)
-    def infix_op = mixfix_op(s.infix_ops)
+    val prefix_op = mixfix_op(s.prefix_ops, op)
+    val postfix_op = mixfix_op(s.postfix_ops, op)
+    val infix_op = mixfix_op(s.infix_ops, op)
   }
 
-  def mixfix_op[T, A](m: Map[T, A]): Parser[T, A] = parse[T, A] {
-    case a :: in if m contains a => (m(a), in)
+  def mixfix_op[T, O, A](m: Map[T, A], op: T => O): Parser[T, (O, A)] = parse {
+    case a :: in if m contains a => ((op(a), m(a)), in)
     case _                       => fail
   }
 
-  def mixfix_op[T](s: Set[T]): Recognizer[T] = accept[T] {
-    case a :: in if s contains a => in
+  def mixfix_op[T, O](s: Set[T], op: T => O): Parser[T, O] = parse {
+    case a :: in if s contains a => (op(a), in)
     case _                       => fail
   }
 }

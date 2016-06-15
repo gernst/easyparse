@@ -42,7 +42,7 @@ trait Parser[T, +A] extends (List[T] => (A, List[T])) {
   def ? = (this map Some.apply) | ret(None)
   def * = parse { Parser.rep(this, _: List[T]) }
   def + = lift[T, A, List[A], List[A]](this, _ :: _, this.*)
-
+  
   /*  def !(msg: String) = this | parse { in => error(msg + in.take(12).mkString(" at '", " ", "...'")) }
   def $ = this ~ eof */
 
@@ -106,4 +106,40 @@ object Parser {
   val float = string map { _.toFloat.mask[NumberFormatException] }
   val double = string map { _.toDouble.mask[NumberFormatException] }
   val bigint = string map { BigInt(_).mask[NumberFormatException] }
+
+  implicit class ParseFunction1[A1, B](f: A1 => B) {
+    def from[T](p1: Parser[T, A1]) = parse[T, B] {
+      in0 =>
+        val (a1, in1) = p1(in0)
+        (f(a1), in1)
+    }
+  }
+
+  implicit class ParseFunction2[A1, A2, B](f: (A1, A2) => B) {
+    def from[T](p1: Parser[T, A1], p2: Parser[T, A2]) = parse[T, B] {
+      in0 =>
+        val (a1, in1) = p1(in0)
+        val (a2, in2) = p2(in1)
+        (f(a1, a2), in2)
+    }
+  }
+  implicit class ParseFunction3[A1, A2, A3, B](f: (A1, A2, A3) => B) {
+    def from[T](p1: Parser[T, A1], p2: Parser[T, A2], p3: Parser[T, A3]) = parse[T, B] {
+      in0 =>
+        val (a1, in1) = p1(in0)
+        val (a2, in2) = p2(in1)
+        val (a3, in3) = p3(in2)
+        (f(a1, a2, a3), in3)
+    }
+  }
+  implicit class ParseFunction4[A1, A2, A3, A4, B](f: (A1, A2, A3, A4) => B) {
+    def from[T](p1: Parser[T, A1], p2: Parser[T, A2], p3: Parser[T, A3], p4: Parser[T, A4]) = parse[T, B] {
+      in0 =>
+        val (a1, in1) = p1(in0)
+        val (a2, in2) = p2(in1)
+        val (a3, in3) = p3(in2)
+        val (a4, in4) = p4(in3)
+        (f(a1, a2, a3, a4), in4)
+    }
+  }
 }

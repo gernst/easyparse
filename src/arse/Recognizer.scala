@@ -37,7 +37,7 @@ object Recognizer {
     def apply(in: List[T]) = f(in)
   }
 
-  def tok[T](t: T): Recognizer[T] = accept {
+  implicit def tok[T](t: T): Recognizer[T] = accept {
     case `t` :: in => in
     case _         => fail
   }
