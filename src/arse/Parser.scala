@@ -72,7 +72,7 @@ object Parser {
     case in => (a, in)
   }
 
-  def rec[T, A](p: Parser[T, A]): Parser[T, A] = parse {
+  def rec[T, A](p: => Parser[T, A]): Parser[T, A] = parse {
     in => p(in)
   }
 

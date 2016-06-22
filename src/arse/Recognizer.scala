@@ -53,7 +53,7 @@ object Recognizer {
     in => in
   }
 
-  def rec[T](p: Recognizer[T]): Recognizer[T] = accept {
+  def rec[T](p: => Recognizer[T]): Recognizer[T] = accept {
     in => p(in)
   }
 
