@@ -14,7 +14,16 @@ package object arse {
     override val getStackTrace = Array[StackTraceElement]()
   }
 
+  case class Abort[T](msg: String, in: List[T]) extends Exception {
+    override def toString = {
+      val (toks, rest) = in.splitAt(4)
+      val at = toks.mkString(" ") + (if (rest == Nil) "" else "...")
+      msg + " at '" + at + "'"
+    }
+  }
+
   def fail = throw Fail
+  def abort[T](msg: String, in: List[T]) = throw Abort(msg, in)
 
   implicit class Control[A](first: => A) {
     def or[B <: A](second: => B) = {

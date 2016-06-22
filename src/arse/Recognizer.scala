@@ -30,6 +30,13 @@ trait Recognizer[T] extends (List[T] => List[T]) {
   def ? = this | skip
   def * = accept { Recognizer.rep(this, _: List[T]) }
   def + = this ~ this.*
+  def !(msg: String) = this | accept(abort(msg, _))
+
+  def $(): (List[T] => Unit) = {
+    in =>
+      val out = this(in)
+      if (!out.isEmpty) abort("expected end if input", out)
+  }
 }
 
 object Recognizer {

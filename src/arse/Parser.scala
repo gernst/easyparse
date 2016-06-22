@@ -42,9 +42,15 @@ trait Parser[T, +A] extends (List[T] => (A, List[T])) {
   def ? = (this map Some.apply) | ret(None)
   def * = parse { Parser.rep(this, _: List[T]) }
   def + = lift[T, A, List[A], List[A]](this, _ :: _, this.*)
-  
-  /*  def !(msg: String) = this | parse { in => error(msg + in.take(12).mkString(" at '", " ", "...'")) }
-  def $ = this ~ eof */
+  def !(msg: String) = this | parse(abort(msg, _))
+  def sep(s: Recognizer[T]) = parse[T, List[A]] { in => repsep(this, s, in) }
+
+  def $(): (List[T] => A) = {
+    in =>
+      val (a, out) = this(in)
+      if (!out.isEmpty) abort("expected end if input", out)
+      else a
+  }
 
   def foreach(f: A => Unit) = this map { a => f(a); a }
   def filter(p: A => Boolean) = this map { a => if (p(a)) a else fail }

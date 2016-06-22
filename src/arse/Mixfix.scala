@@ -15,7 +15,7 @@ case class Prefix(prec: Int) extends Fixity
 case class Postfix(prec: Int) extends Fixity
 case class Infix(assoc: Assoc, prec: Int) extends Fixity
 
-trait Syntax[T, O] {
+trait Syntax[T] {
   def prefix_ops: Map[T, Int]
   def postfix_ops: Map[T, Int]
   def infix_ops: Map[T, (Assoc, Int)]
@@ -88,10 +88,10 @@ object Mixfix {
   def nprec(assoc: Assoc, prec: Int) = if (assoc == Left) prec else prec - 1
   def rprec(assoc: Assoc, prec: Int) = if (assoc == Right) prec else prec + 1
 
-  def Min = 0
+  def Min = Int.MinValue
   def Max = Int.MaxValue
 
-  def mixfix[T, O, E](p: => Parser[T, E], op: T => O, ap: (O, List[E]) => E, s: Syntax[T, O]): Parser[T, E] = new Mixfix[T, O, E]() {
+  def mixfix[T, O, E](p: => Parser[T, E], op: T => O, ap: (O, List[E]) => E, s: Syntax[T]): Parser[T, E] = new Mixfix[T, O, E]() {
     lazy val inner_expr = p
     def apply(op: O, args: List[E]) = ap(op, args)
 
