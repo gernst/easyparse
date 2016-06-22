@@ -43,7 +43,7 @@ trait Parser[T, +A] extends (List[T] => (A, List[T])) {
   def * = parse { Parser.rep(this, _: List[T]) }
   def + = lift[T, A, List[A], List[A]](this, _ :: _, this.*)
   def !(msg: String) = this | parse(abort(msg, _))
-  def sep(s: Recognizer[T]) = parse[T, List[A]] { in => repsep(this, s, in) }
+  def rep(sep: Recognizer[T]) = parse[T, List[A]] { in => repsep(this, sep, in) }
 
   def $(): (List[T] => A) = {
     in =>
