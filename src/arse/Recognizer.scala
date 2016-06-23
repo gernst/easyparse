@@ -4,6 +4,8 @@
 
 package arse
 
+import scala.language.implicitConversions
+
 trait Recognizer[T] extends (List[T] => List[T]) {
   import Parser._
   import Recognizer._

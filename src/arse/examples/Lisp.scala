@@ -1,5 +1,6 @@
 package arse.examples
 
+import scala.language.postfixOps
 import arse._
 
 object Lisp {
