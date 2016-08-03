@@ -8,7 +8,7 @@ object JSON {
   import Recognizer._
 
   def isString(s: String) = {
-    s.startsWith("\"") && s.endsWith("\"")
+    s.head == '"' && s.last == '"'
   }
 
   val json: Parser[String, Any] = Parser.rec(top)
