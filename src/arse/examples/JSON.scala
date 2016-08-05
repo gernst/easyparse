@@ -7,7 +7,7 @@ object JSON {
   import Parser._
   import Recognizer._
 
-  def isString(s: String) = {
+  def isId(s: String) = {
     s.head == '"' && s.last == '"'
   }
 
@@ -17,7 +17,7 @@ object JSON {
   val _false = lit("false", false)
   val _null = lit("null", null)
 
-  val id = string filter isString
+  val id = string filter isId
   val const = _true | _false | _null | int | id
 
   val array = "[" ~ json.rep(sep = ",") ~ "]"
