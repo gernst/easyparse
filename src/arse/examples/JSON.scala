@@ -20,10 +20,10 @@ object JSON {
   val id = string filter isId
   val const = _true | _false | _null | int | id
 
-  val array = "[" ~ json.rep(sep = ",") ~ "]"
+  val array = "[" ~ json.rep(sep = ",") ~ expect("]")
 
   val pair = id ~ ":" ~ json
-  val map = "{" ~ pair.rep(sep = ",") ~ "}"
+  val map = "{" ~ pair.rep(sep = ",") ~ expect("}") map (_.toMap)
 
-  val top = array | pair | const
+  val top = array | map | const
 }
