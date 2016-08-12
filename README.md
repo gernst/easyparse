@@ -106,6 +106,10 @@ The [combinator](https://github.com/scala/scala-parser-combinators)
 library (no longer) shipped with Scala is much more feature complete and supports
 left recursion by packrat parsing.
 
+The [fastparse](http://www.lihaoyi.com/fastparse)
+library for Scala provides a similar interface, but has many additional (cool!)
+features.
+
 No measurements on efficiency so far, but the library is probably rather slow.
 If you need speed, try a LALR parser generator instead, such as
 [beaver](http://beaver.sourceforge.net).
