@@ -22,8 +22,14 @@ object JSON {
 
   val array = "[" ~ json.rep(sep = ",") ~ expect("]")
 
-  val pair = id ~ ":" ~ json
+  val pair = id ~ expect(":") ~ json
   val map = "{" ~ pair.rep(sep = ",") ~ expect("}") map (_.toMap)
 
   val top = array | map | const
+
+  def parse(in: List[String]) = {
+    val p = json ! "not a JSON value"
+    val q = p.$
+    q(in)
+  }
 }

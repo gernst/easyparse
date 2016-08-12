@@ -65,7 +65,7 @@ object Parser {
 
   def lit[T, A](t: T, a: A): Parser[T, A] = parse {
     case `t` :: in => (a, in)
-    case _         => fail
+    case _ => fail
   }
 
   def ret[T, A](a: A): Parser[T, A] = parse {
@@ -82,6 +82,22 @@ object Parser {
     (a :: as, in2)
   } or {
     (Nil, in0)
+  }
+
+  def seq[T, A](ps: List[Parser[T, A]], in0: List[T]): (List[A], List[T]) = ps match {
+    case Nil =>
+      (Nil, in0)
+    case p :: ps =>
+      val (a, in1) = p(in0)
+      val (as, in2) = seq(ps, in1)
+      (a :: as, in2)
+  }
+
+  def alt[T, A](ps: List[Parser[T, A]], in: List[T]): (A, List[T]) = ps match {
+    case Nil =>
+      fail
+    case p :: ps =>
+      p(in) or alt(ps, in)
   }
 
   def repsep[T, A](p: Parser[T, A], s: Recognizer[T], in0: List[T]): (List[A], List[T]) = {
@@ -102,7 +118,7 @@ object Parser {
 
   def __[T] = parse[T, T] {
     case (a :: in) => (a, in)
-    case _         => fail
+    case _ => fail
   }
 
   val string = __[String]
