@@ -40,7 +40,7 @@ object Grammar {
     case ("|", List(expr1, expr2)) => Alt(expr1, expr2)
   }
 
-  val expr: Parser[String, Expr] = mixfix(closed, op, ap, operators)
+  val expr: Parser[List[String], Expr] = mixfix(closed, op, ap, operators)
 
   val keywords = Set("::=", ";", "(", ")")
   val tok = Tok.from(string filter isLit)

@@ -27,7 +27,7 @@ object Math {
 
   def id[A](a: A) = a
 
-  val expr: Parser[String, Expr] = mixfix(top, id, App, operators)
+  val expr: Parser[List[String], Expr] = mixfix(top, id, App, operators)
   val num = Num.from(double)
   val args = parens(expr *)
   val app = App.from(string, args)

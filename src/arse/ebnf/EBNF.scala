@@ -9,19 +9,21 @@ object EBNF {
   import Mixfix._
   
   def main(args: Array[String]) {
+    /*
     val source = "x ::= y + ; y ::= ( 'z' | 'k' ) ; x ::= x x ;"
     val in = source.split("\\s+").toList
-    val g = top(in)
+    val (g, _) = top(in)
     println(in)
     println(g)
+    */
   }
   
-  val top = Grammar.grammar $
+  val top = Grammar.grammar
 
   type Env = Map[Id, Parser[String, Any]]
 
   def shift(text: String) = {
-    lit(text, text)
+    ??? // lit(text, text)
   }
 
   def reduce(id: Id, env: () => Env) = parse[String, Any] {
