@@ -4,6 +4,8 @@
 
 package arse
 
+import scala.util.matching.Regex
+
 trait Parser[I, +A] extends (I => (A, I)) {
   import Parser._
   import Recognizer._
@@ -116,6 +118,16 @@ object Parser {
 
   def lift[I, A, B, C](p: Parser[I, A], f: (A, B) => C, q: Parser[I, B]): Parser[I, C] = {
     (p ~ q) map f.tupled
+  }
+  
+  def scan(re: Regex) = parse[String, String] {
+    in =>
+      re.findPrefixOf(in) match {
+        case None => fail
+        case Some(matched) =>
+          val (tok, rest) = in.splitAt(matched.length)
+          (tok, rest)
+      }
   }
 
   def __[I] = parse[List[I], I] {

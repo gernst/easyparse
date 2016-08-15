@@ -5,6 +5,7 @@
 package arse
 
 import scala.language.implicitConversions
+import scala.util.matching.Regex
 
 trait Recognizer[I] extends (I => I) {
   import Parser._
@@ -69,4 +70,15 @@ object Recognizer {
     in0
   }
 
+  /*
+  def scan(re: Regex) = accept[String] {
+    in =>
+      re.findPrefixOf(in) match {
+        case None => fail
+        case Some(matched) =>
+          val (tok, rest) = in.splitAt(matched.length)
+          rest
+      }
+  }
+  */
 }

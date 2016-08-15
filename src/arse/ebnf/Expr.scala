@@ -10,13 +10,17 @@ case class Id(name: String) extends Expr {
   override def toString = name
 }
 
+case class Named(name: Id, expr: Expr) extends Expr {
+  override def toString = name + "=" + expr
+}
+
 case class Opt(expr: Expr) extends Expr {
-  override def toString = expr + " ?"
+  override def toString = expr + "?"
 }
 
 case class Rep(expr: Expr, isPlus: Boolean) extends Expr {
   override def toString = {
-    if(isPlus) expr + " +" else expr + " *"
+    expr + (if(isPlus) "+" else "*")
   }
 }
 
