@@ -5,15 +5,15 @@ import arse._
 case class Alt[A, S](p: Rel[A, S], q: Rel[A, S]) extends Rel[A, S] {
   override def toString = "(" + p + " | " + q + ")"
 
-  def apply(s: S) = {
-    p apply s
+  def parse(s: S) = {
+    p parse s
   } or {
-    q apply s
+    q parse s
   }
 
-  def unapply(as: (A, S)) = {
-    p unapply as
+  def format(as: (A, S)) = {
+    p format as
   } or {
-    q unapply as
+    q format as
   }
 }

@@ -12,19 +12,16 @@ object Test {
   case class Id(name: String) extends Expr
   case class App(fun: String, args: List[Expr]) extends Expr
 
-  object _Id extends InvFunction1(Id.apply, Id.unapply)
-  object _App extends InvFunction2(App.apply, App.unapply)
-
-  val expr: Parser = rec(app | id)
-  val id: Parser = _Id.from(__)
-  val app: Parser = _App.from(__[String], expr +)
+  object Expr extends Rec(App | Id)
+  object Id extends Rel1[String, Id, Expr, List[String]](string)
+  object App extends Rel2[String, List[Expr], App, Expr, List[String]](string, Expr +)
 
   def main(args: Array[String]) {
     val s = List("x", "y")
     println(s)
-    val a = expr apply s
+    val a = Expr parse s
     println(a)
-    val b = expr unapply a
+    val b = Expr format a
     println(b)
   }
 }
