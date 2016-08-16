@@ -3,6 +3,8 @@ package arse.bi
 import arse._
 
 abstract class Rel1[A1, B, C >: B, S](p: Rel[A1, S])(implicit ev: ClassTag[B]) extends Rel[C, S] with (A1 => B) {
+  override def toString = ev.runtimeClass.getSimpleName + "(" + p + ")"
+
   def apply(a1: A1): B
   def unapply(b: B): Option[A1]
 
@@ -24,6 +26,8 @@ abstract class Rel1[A1, B, C >: B, S](p: Rel[A1, S])(implicit ev: ClassTag[B]) e
 }
 
 abstract class Rel2[A1, A2, B, C >: B, S](p: Rel[A1, S], q: Rel[A2, S])(implicit ev: ClassTag[B]) extends Rel[C, S] with ((A1, A2) => B) {
+  override def toString = ev.runtimeClass.getSimpleName + "(" + p + ", " + q + ")"
+
   def apply(a1: A1, a2: A2): B
   def unapply(b: B): Option[(A1, A2)]
 

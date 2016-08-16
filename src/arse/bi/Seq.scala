@@ -1,7 +1,7 @@
 package arse.bi
 
 case class Seq[A, B, S](p: Rel[A, S], q: Rel[B, S]) extends Rel[(A, B), S] {
-  override def toString = "" + p + " " + q
+  override def toString = "" + p + ", " + q
 
   def parse(s0: S) = {
     val (a, s1) = p parse s0

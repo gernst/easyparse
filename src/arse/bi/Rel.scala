@@ -13,7 +13,9 @@ trait Rel[A, S] {
   def + = Rep(this, 1)
 }
 
-class Rec[A, S](p: => Rel[A, S]) extends Rel[A, S] {
+class Rec[A, S](p: => Rel[A, S], name: String = "...") extends Rel[A, S] {
+  override def toString = name
+
   def parse(s: S) = p parse s
   def format(as: (A, S)) = p format as
 }
