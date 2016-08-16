@@ -7,27 +7,36 @@ object EBNF {
   import Parser._
   import Recognizer._
   import Mixfix._
-  
+
   def main(args: Array[String]) {
-    val source = "x ::= y + ; y ::= ( 'z' | 'k' ) ; x ::= x x ;"
-    val in = source.split("\\s+").toList
-    val g = top(in)
-    println(in)
-    println(g)
+    // val in = "start ::= ( 'x' | 'y' ) + num = '\\d+' end ; end ::= 'z' ;"
+    val in = "start ::= 'x' start | 'y' ;"
+    val source = in.split("\\s+").toList
+    println(source)
+    val (g, _) = top(source)
+    println("grammar\n" + g)
+    val env = process(g)
+    println(env)
+    val p = env(Id("start"))
+    val test = "xxxy"
+    val (x, out) = p(test)
+    println("result: " + x)
+    println("remaining: " + out)
   }
-  
-  val top = Grammar.grammar $
+
+  val top = Grammar.grammar
 
   type Env = Map[Id, Parser[String, Any]]
 
   def shift(text: String) = {
-    lit(text, text)
+    val pat = text.substring(1, text.length - 1)
+    scan(pat.r)
   }
 
   def reduce(id: Id, env: () => Env) = parse[String, Any] {
     in0 =>
       val (a, in1) = env()(id)(in0)
-      ((id, a), in1)
+      (a, in1)
   }
 
   def compile(expr: Expr, env: () => Env): Parser[String, Any] = {
@@ -35,9 +44,11 @@ object EBNF {
       case Tok(text) => shift(text)
       case id: Id => reduce(id, env)
       case Opt(expr) => compile(expr) ?
+      case Named(Id(name), expr) => compile(expr) map { (name, _) }
       case Rep(expr, false) => compile(expr) *
       case Rep(expr, true) => compile(expr) +
       case Alt(expr1, expr2) => compile(expr1) | compile(expr2)
+      case Seq(List(expr)) => compile(expr)
       case Seq(exprs) => parse { Parser.seq(exprs map compile, _) }
     }
     compile(expr)
@@ -54,6 +65,8 @@ object EBNF {
       }
 
       val env: Env = process(grammar, () => env)
+      println(grammar)
+      println(env)
     }
     __.env
   }

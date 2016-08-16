@@ -25,11 +25,12 @@ object Grammar {
     val prefix_ops: Map[String, Int] = Map()
 
     val postfix_ops: Map[String, Int] = Map(
-      "*" -> 2,
-      "+" -> 2)
+      "*" -> 3,
+      "+" -> 3)
 
     val infix_ops: Map[String, (Assoc, Int)] = Map(
-      "|" -> (Right, 1))
+      "|" -> (Right, 1),
+      "=" -> (Non, 2))
   }
 
   def op(name: String) = name
@@ -38,11 +39,12 @@ object Grammar {
     case ("*", List(expr)) => Rep(expr, false)
     case ("+", List(expr)) => Rep(expr, true)
     case ("|", List(expr1, expr2)) => Alt(expr1, expr2)
+    case ("=", List(name: Id, expr)) => Named(name, expr)
   }
 
-  val expr: Parser[String, Expr] = mixfix(closed, op, ap, operators)
+  val expr: Parser[List[String], Expr] = mixfix(closed, op, ap, operators)
 
-  val keywords = Set("::=", ";", "(", ")")
+  val keywords = Set("::=", ";", "(", ")", "|")
   val tok = Tok.from(string filter isLit)
   val id = Id.from(string filterNot keywords)
   val seq = Seq.from(expr +)

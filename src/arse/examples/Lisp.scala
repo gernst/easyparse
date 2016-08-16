@@ -10,7 +10,7 @@ object Lisp {
 
   import Parser._
 
-  val expr: Parser[String, Expr] = Parser.rec(top)
+  val expr: Parser[List[String], Expr] = Parser.rec(top)
   val id = Id.from(string)
   val app = App.from(expr *)
   val top = parens(app) | id

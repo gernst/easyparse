@@ -5,7 +5,7 @@ package object examples {
 
   def expect(s: String) = s ! "expected " + s
 
-  def parens[E](p: Parser[String, E]) = {
+  def parens[E](p: Parser[List[String], E]) = {
     "(" ~ p ~ expect(")")
   }
 }

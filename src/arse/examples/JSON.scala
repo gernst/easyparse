@@ -11,7 +11,7 @@ object JSON {
     s.head == '"' && s.last == '"'
   }
 
-  val json: Parser[String, Any] = Parser.rec(top)
+  val json: Parser[List[String], Any] = Parser.rec(top)
 
   val _true = lit("true", true)
   val _false = lit("false", false)
@@ -29,7 +29,7 @@ object JSON {
 
   def parse(in: List[String]) = {
     val p = json ! "not a JSON value"
-    val q = p.$
-    q(in)
+    val (r, _) = p(in)
+    r
   }
 }
