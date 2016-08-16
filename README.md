@@ -12,6 +12,10 @@ Feedback is welcome! I'd appreciate to hear whether anyone found this library us
 Refer to branch [v0](https://github.com/gernst/arse/tree/v0) for further infos
 and documentation.
 
+**Hot:** Bidirectional parsing and printing in package
+[`arse.bi`](https://github.com/gernst/arse/tree/master/src/arse/bi)
+(no documentation yet). See `Test.scala` for an example.
+
 Motivation & Overview
 ---------------------
 
