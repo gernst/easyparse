@@ -22,7 +22,7 @@ case class Rep[A, S](p: Rel[A, S], min: Int, max: Int = Int.MaxValue) extends Re
     (Nil, s0)
   } else {
     val (a, s1) = p parse s0
-    val (as, s2) = this parse (s1, count + 1) // already have an element
+    val (as, s2) = this parse (s1, count + 1)
     (a :: as, s2)
   } or {
     if (min <= count) (Nil, s0)

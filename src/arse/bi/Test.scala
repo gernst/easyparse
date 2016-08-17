@@ -13,6 +13,13 @@ object Test {
   object Id extends Rel1[String, Id, Expr, List[String]](string)
   object App extends Rel2[String, List[Expr], App, Expr, List[String]](string, Expr +)
   
+  case class Foo(a: String, b: Int)
+  object Foo extends Iso2[String, Int, Foo]
+  
+  // val expr = rec(app | id)
+  // val id = Id ! (string)
+  // val app = App.from(string, expr +)
+
   def main(args: Array[String]) {
     val s = List("x", "y")
     println(s)

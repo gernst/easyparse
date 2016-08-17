@@ -11,6 +11,7 @@ trait Rel[A, S] {
   def ? = Opt(this)
   def * = Rep(this, 0)
   def + = Rep(this, 1)
+  def map[B](f: A <=> B) = Map(this, f)
 }
 
 class Rec[A, S](p: => Rel[A, S], name: String = "...") extends Rel[A, S] {
