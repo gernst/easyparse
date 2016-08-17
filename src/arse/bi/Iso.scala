@@ -4,15 +4,15 @@ import arse._
 import Seq._
 
 // cannot use unapply, clashes with <~ and case class companions
-trait <=[A, B] { def inverse(b: B): A }
+trait <=[A, +B] { def inverse[C >: B](c: C): A }
 
-trait <=>[A, B] extends (A => B) with (A <= B) {
-  val ^ = ((b: B) => inverse(b))
+trait <=>[A, +B] extends (A => B) with (A <= B) {
+  val unary_~ = inverse _
 }
 
 trait <~[A, B] extends (A <= B) {
   def unapply(b: B): Option[A]
-  def inverse(b: B) = unapply(b) getOrElse fail
+  def inverse[C >: B](c: C) = unapply(c.asInstanceOf[B]) getOrElse fail
 }
 
 trait <~>[A, B] extends (A <=> B) with (A <~ B)

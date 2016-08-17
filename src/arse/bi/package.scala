@@ -7,10 +7,11 @@ import arse._
 package object bi {
   type ClassTag[A] = scala.reflect.ClassTag[A]
 
-  def __[A] = Tok[A]()
+  def __[A](implicit ev: ClassTag[A]) = Tok[A]()
   def string = Tok[String]("String")
 
   def rec[A, S](p: => Rel[A, S]) = new Rec(p)
 
-  implicit def toLit[A](a: A) = new Lit(a)
+  def $[S] = Eof[S]()
+  implicit def toElem[S](s: S) = Elem(s)
 }

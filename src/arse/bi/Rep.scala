@@ -2,7 +2,7 @@ package arse.bi
 
 import arse._
 
-case class Rep[A, S](p: Rel[A, S], min: Int, max: Int = Int.MaxValue) extends Rel[List[A], S] {
+case class Rep[+A, S](p: Rel[A, S], min: Int, max: Int = Int.MaxValue) extends Rel[List[A], S] {
   assert(0 <= min && min <= max)
 
   override def toString = {
@@ -29,7 +29,7 @@ case class Rep[A, S](p: Rel[A, S], min: Int, max: Int = Int.MaxValue) extends Re
     else fail
   }
 
-  def format(ass: (List[A], S)): S = ass match {
+  def format[B >: List[A]](bs: (B, S)): S = bs match {
     case (a :: as, s0) =>
       val s1 = p format (a, s0)
       val s2 = this format (as, s1)

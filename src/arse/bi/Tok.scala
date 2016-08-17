@@ -2,7 +2,7 @@ package arse.bi
 
 import arse._
 
-case class Tok[A](name: String = "__") extends Rel[A, List[A]] {
+case class Tok[A](name: String = "__")(implicit ev: ClassTag[A]) extends Rel[A, List[A]] {
   override def toString = name
 
   def parse(as: List[A]) = as match {
@@ -10,8 +10,8 @@ case class Tok[A](name: String = "__") extends Rel[A, List[A]] {
     case _ => fail
   }
 
-  def format(aas: (A, List[A])) = aas match {
-    case (a, as) => as :+ a
+  def format[B >: A](bs: (B, List[A])) = bs match {
+    case (a: A, as) => a :: as
     case _ => fail
   }
 }

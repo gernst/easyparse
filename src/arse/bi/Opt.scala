@@ -2,7 +2,7 @@ package arse.bi
 
 import arse._
 
-case class Opt[A, S](p: Rel[A, S]) extends Rel[Option[A], S] {
+case class Opt[+A, S](p: Rel[A, S]) extends Rel[Option[A], S] {
   override def toString = "" + p + "?"
 
   def parse(s0: S): (Option[A], S) = {
@@ -12,9 +12,9 @@ case class Opt[A, S](p: Rel[A, S]) extends Rel[Option[A], S] {
     (None, s0)
   }
 
-  def format(a: (Option[A], S)): S = a match {
-    case (Some(a), s) =>
-      p format (a, s)
+  def format[B >: Option[A]](bs: (B, S)): S = bs match {
+    case (Some(b), s) =>
+      p format (b, s)
     case (None, s) =>
       s
   }
