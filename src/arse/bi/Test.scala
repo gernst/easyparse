@@ -11,13 +11,13 @@ object Test {
   case class Id(name: String) extends Expr
   case class App(fun: String, args: List[Expr]) extends Expr
 
-  object Expr extends Rec(App | Id, "Expr")
-  object Id extends Rel1[String, Id, Expr, List[String]](string) with Iso1[String, Id]
-  object App extends Rel2[String, List[Expr], App, Expr, List[String]](string, Expr +) with Iso2[String, List[Expr], App]
+  object Id extends Iso1[String, Id]
+  object App extends Iso2[String, List[Expr], App]
   
   val expr: Rel[Expr, List[String]] = rec(id | app)
-  val id = Id.from(string)
-  val app = App.from(string, expr +)
+
+  val id = Id.from(string).to[Expr]
+  val app = App.from(string, expr +).to[Expr]
   
   // val expr = rec(app | id)
   // val id = Id ! (string)
@@ -26,9 +26,9 @@ object Test {
   def main(args: Array[String]) {
     val s = List("x", "y")
     println(s)
-    val a = Expr parse s
+    val a = expr parse s
     println(a)
-    val b = Expr format a
+    val b = expr format a
     println(b)
   }
 }

@@ -7,10 +7,11 @@ trait Rel[A, S] {
   def format(as: (A, S)): S
 
   def ~[B](that: Rel[B, S]) = Seq(this, that)
-  def |(that: Rel[A, S])(implicit ep: ClassTag[A]) = Alt(this, that)
+  def |(that: Rel[A, S]) = Alt(this, that)
   def ? = Opt(this)
   def * = Rep(this, 0)
   def + = Rep(this, 1)
+  def to[B >: A](implicit ep: ClassTag[A]) = Cast[A, B, S](this)
   def map[B](f: A <=> B) = Map(this, f)
 }
 
