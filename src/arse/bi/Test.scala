@@ -12,13 +12,12 @@ object Test {
   case class App(fun: String, args: List[Expr]) extends Expr
 
   object Expr extends Rec(App | Id, "Expr")
-  object Id extends Rel1[String, Id, Expr, List[String]](string)
-  object App extends Rel2[String, List[Expr], App, Expr, List[String]](string, Expr +)
+  object Id extends Rel1[String, Id, Expr, List[String]](string) with Iso1[String, Id]
+  object App extends Rel2[String, List[Expr], App, Expr, List[String]](string, Expr +) with Iso2[String, List[Expr], App]
   
-  case class Foo(a: String, b: String)
-  object Foo extends Iso2[String, String, Foo]
-  
-  val p = Foo.from(string, string)
+  val expr: Rel[Expr, List[String]] = rec(id | app)
+  val id = Id.from(string)
+  val app = App.from(string, expr +)
   
   // val expr = rec(app | id)
   // val id = Id ! (string)
