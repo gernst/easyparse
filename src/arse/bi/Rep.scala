@@ -29,12 +29,19 @@ case class Rep[+A, S](p: Rel[A, S], min: Int, max: Int = Int.MaxValue) extends R
     else fail
   }
 
-  def format[B >: List[A]](bs: (B, S)): S = bs match {
-    case (a :: as, s0) =>
-      val s1 = p format (a, s0)
-      val s2 = this format (as, s1)
+  def format[B >: List[A]](bs: (B, S)): S = {
+    val (b: List[_], s) = bs
+    format(b, s, 0)
+  }
+
+  def format(b: List[_], s0: S, count: Int): S = b match {
+    case a :: as =>
+      if (count == max) fail
+      val s1 = this format (as, s0, count + 1)
+      val s2 = p format (a, s1)
       s2
-    case (Nil, s0) =>
-      s0
+    case Nil =>
+      if (min <= count) s0
+      else fail
   }
 }

@@ -14,15 +14,17 @@ object Test {
   object Id extends Iso1[String, Id]
   object App extends Iso2[String, List[Expr], App]
 
-  val expr: Rel[Expr, List[String]] = rec(app | id)
+  val keywords = Set("(", ")")
+  val name = string filterNot keywords
 
-  val id = Id.from(string)
-  val app = App.from(string, "(" ~ expr.+ ~ ")")
-  
-  val top = expr
+  val expr: Rec[Expr, List[String]] = rec(app | id)
+  val id = Id.from(name)
+  val app = App.from(name, "(" ~ expr.+ ~ ")")
+
+  val top = expr ~ $
 
   def main(args: Array[String]) {
-    val s = List("x", "(", "y", ")")
+    val s = List("x", "(", "y", "z", "(", "a", ")", ")")
     println(s)
     val a = top parse s
     println(a)

@@ -1,7 +1,7 @@
 package arse.bi
 
-case class Map[A, B >: A, C, S](p: Rel[A, S], f: B <=> C) extends Rel[C, S] {
-  override def toString = "" + p + "^"
+case class Map[A, B, S](p: Rel[A, S], f: A <=> B) extends Rel[B, S] {
+  override def toString = "" + p
 
   def parse(s0: S) = {
     val (a, s1) = p  parse s0
@@ -9,9 +9,9 @@ case class Map[A, B >: A, C, S](p: Rel[A, S], f: B <=> C) extends Rel[C, S] {
     (b, s1)
   }
 
-  def format[D >: C](ds: (D, S)) = {
-    val (d, s) = ds
-    val a = (~f)(d)
+  def format[C >: B](cs: (C, S)) = {
+    val (c, s) = cs
+    val a = (~f)(c)
     p format (a, s)
   }
 }
