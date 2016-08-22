@@ -15,10 +15,15 @@ case class Prefix(prec: Int) extends Fixity
 case class Postfix(prec: Int) extends Fixity
 case class Infix(assoc: Assoc, prec: Int) extends Fixity
 
-trait Syntax[I] {
-  def prefix_ops: Map[I, Int]
-  def postfix_ops: Map[I, Int]
-  def infix_ops: Map[I, (Assoc, Int)]
+trait Syntax[T] {
+  def prefix_ops: Map[T, Int]
+  def postfix_ops: Map[T, Int]
+  def infix_ops: Map[T, (Assoc, Int)]
+
+  def contains(t: T) =
+    (prefix_ops contains t) ||
+      (postfix_ops contains t) ||
+      (infix_ops contains t)
 }
 
 trait Mixfix[I, O, E] extends Parser[I, E] {

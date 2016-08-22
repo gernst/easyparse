@@ -10,8 +10,11 @@ object Lisp {
 
   import Parser._
 
+  val keywords = Set("(", ")")
+  val name = string filterNot keywords
+  
   val expr: Parser[List[String], Expr] = Parser.rec(top)
-  val id = Id.from(string)
+  val id = Id.from(name)
   val app = App.from(expr *)
   val top = parens(app) | id
 }

@@ -47,15 +47,6 @@ trait Parser[I, +A] extends (I => (A, I)) {
   def !(msg: String) = this | parse(abort(msg, _))
   def rep(sep: Recognizer[I]) = parse[I, List[A]] { in => repsep(this, sep, in) }
 
-  /*
-  def $(): (I => A) = {
-    in =>
-      val (a, out) = this(in)
-      if (!out.isEmpty) abort("expected end if input", out)
-      else a
-  }
-  */
-
   def foreach(f: A => Unit) = this map { a => f(a); a }
   def filter(p: A => Boolean) = this map { a => if (p(a)) a else fail }
   def filterNot(p: A => Boolean) = this map { a => if (!p(a)) a else fail }
@@ -142,6 +133,15 @@ object Parser {
   val float = string map { _.toFloat.mask[NumberFormatException] }
   val double = string map { _.toDouble.mask[NumberFormatException] }
   val bigint = string map { BigInt(_).mask[NumberFormatException] }
+  
+  implicit class ListParser[A,T](p: Parser[List[T], A]) {
+    def $() = {
+      in0: List[T] =>
+        val (a, in1) = p(in0)
+        if(!in1.isEmpty) fail
+        a
+    }
+  }
 
   implicit class ParseFunction1[A1, B](f: A1 => B) {
     def from[I](p1: Parser[I, A1]) = parse[I, B] {

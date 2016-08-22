@@ -34,14 +34,6 @@ trait Recognizer[I] extends (I => I) {
   def * = accept { Recognizer.rep(this, _: I) }
   def + = this ~ this.*
   def !(msg: String) = this | accept(abort(msg, _))
-
-  /*
-  def $(): (I => Unit) = {
-    in =>
-      val out = this(in)
-      if (!out.isEmpty) abort("expected end if input", out)
-  }
-  */
 }
 
 object Recognizer {
@@ -69,7 +61,7 @@ object Recognizer {
   } or {
     in0
   }
-
+  
   /*
   def scan(re: Regex) = accept[String] {
     in =>
