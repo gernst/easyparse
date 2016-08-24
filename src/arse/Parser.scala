@@ -34,6 +34,12 @@ trait Parser[I, +A] extends (I => (A, I)) {
       val (a, out) = this(in)
       that(a)(out)
   }
+  
+  def >>[B](that: A => Recognizer[I]): Recognizer[I] = accept {
+    in =>
+      val (a, out) = this(in)
+      that(a)(out)
+  }
 
   def map[B](f: A => B): Parser[I, B] = parse {
     in =>
