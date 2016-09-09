@@ -21,7 +21,7 @@ package object simple {
   }
 
   implicit class ListParser[S, A](p: => S ~> List[A]) {
-    def ::(q: => S ~> A) = (q, p) map ((_ :: _))
+    def ::(q: => S ~> A) = (q, p) map (_ :: _)
     def ++(q: => S ~> List[A]) = (p, q) map (_ ++ _)
   }
 
