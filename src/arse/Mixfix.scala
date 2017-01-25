@@ -100,18 +100,16 @@ object Mixfix {
     lazy val inner_expr = p
     def apply(op: O, args: List[E]) = ap(op, args)
 
-    val prefix_op = mixfix_op(s.prefix_ops, op)
-    val postfix_op = mixfix_op(s.postfix_ops, op)
-    val infix_op = mixfix_op(s.infix_ops, op)
+    val prefix_op = mixfix_op((t: T) => s.prefix_ops.get(t), op)
+    val postfix_op = mixfix_op((t: T) => s.postfix_ops.get(t), op)
+    val infix_op = mixfix_op((t: T) => s.infix_ops.get(t), op)
   }
 
-  def mixfix_op[T, O, A](m: Map[T, A], op: T => O): Parser[List[T], (O, A)] = parse {
-    case a :: in if m contains a => ((op(a), m(a)), in)
-    case _ => fail
-  }
-
-  def mixfix_op[I, O](s: Set[I], op: I => O): Parser[List[I], O] = parse {
-    case a :: in if s contains a => (op(a), in)
+  def mixfix_op[T, O, A](m: T => Option[A], op: T => O): Parser[List[T], (O, A)] = parse {
+    case t :: in => m(t) match {
+      case Some(a) => ((op(t), a), in)
+      case None => fail
+    }
     case _ => fail
   }
 }
