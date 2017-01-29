@@ -31,7 +31,7 @@ object Scanner {
       val t = new Array[Array[Int]](n + 1)
       for ((q, i) <- index) {
         t(i) = new Array[Int](256)
-        for (((q0, c), (_, q1)) <- d if q0 == q) {
+        for (((q0, c), (_, _, q1)) <- d if q0 == q) {
           t(i)(c) = index(q1)
         }
       }

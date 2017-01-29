@@ -24,7 +24,7 @@ case class DFA(qs: States, init: State, d: Transitions, fin: Set[State]) {
       d get ((q, c)) match {
         case None =>
           return a
-        case Some((gs, qc)) =>
+        case Some((gs, rs, qc)) =>
           println(q + " -- " + Letter.fmt(c) + " --> " + qc)
           // leave(i+1, g -- gc)
           // enter(i+1, gc -- g)
@@ -39,9 +39,9 @@ case class DFA(qs: States, init: State, d: Transitions, fin: Set[State]) {
     qs mkString ("{ ", ", ", " }")
   }
 
-  def ts(t: ((State, Iterable[Letter]), (Groups, State))) = {
-    val ((q0, cs), (gs, q1)) = t
-    q0 + " -- " + Letters.compact(cs) + " --> " + q1 + gs.mkString(" {", ", ", "}")
+  def ts(t: ((State, Iterable[Letter]), (Groups, Groups, State))) = {
+    val ((q0, cs), (gs, rs, q1)) = t
+    q0 + " -- " + Letters.compact(cs) + " --> " + q1 + gs.mkString(" active = {", ", ", "}") + gs.mkString(" reset = {", ", ", "}")
   }
 
   def tts(d: Transitions) = {
@@ -67,7 +67,8 @@ object DFA {
     case (c, (qs, d)) =>
       val qc = q derive c
       val gs = q active c
-      val dc = d + ((q, c) -> (gs, qc))
+      val rs = q reset c
+      val dc = d + ((q, c) -> (gs, rs, qc))
       if (qs contains qc) {
         (qs, dc)
       } else {

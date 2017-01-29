@@ -94,8 +94,15 @@ case class Group(name: String, e: Regex) extends Regex {
   def first = e.first
   def isNullable = e.isNullable
   def derive(c: Letter) = Regex.group(name, e derive c)
-  def active(c: Letter) = if(first contains c) (e active c) + name else (e active c)
-  def reset(c: Letter) = ??? // if(first contains c) (e active c) + name else (e active c)
+  def active(c: Letter) = {
+    if(first contains c) (e active c) + name
+    else (e active c)
+  }
+  def reset(c: Letter) = {
+    val d = e derive c
+    if(d == Epsilon || d == Empty) (e reset c) + name
+    else (e reset c)
+  }
   override def toString = "(" + name + ":" + e + ")"
 }
 

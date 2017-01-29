@@ -8,7 +8,7 @@ package object re {
   type State = Regex
   type States = Set[State]
   type Groups = Set[String]
-  type Transitions = Map[(State, Letter), (Groups, State)]
+  type Transitions = Map[(State, Letter), (Groups, Groups, State)]
 
   object Set1 {
     def unapply[A](s: Set[A]) = {
