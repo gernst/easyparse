@@ -17,22 +17,22 @@ case class DFA(qs: States, init: State, d: Transitions, fin: Set[State]) {
 
   def ~(cs: Iterable[Byte]): Int = {
     var q = init
-    var a = 0
+    var n = 0
     // enter(0,g)
 
     for ((c, i) <- cs.zipWithIndex) {
       d get ((q, c)) match {
         case None =>
-          return a
+          return n
         case Some((gs, rs, qc)) =>
           println(q + " -- " + Letter.fmt(c) + " --> " + qc)
           // leave(i+1, g -- gc)
           // enter(i+1, gc -- g)
           q = qc
-          if (fin contains q) a = i + 1
+          if (fin contains q) n = i + 1
       }
     }
-    return a
+    return n
   }
 
   def sts(qs: States) = {

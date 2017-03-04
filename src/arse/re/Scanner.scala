@@ -5,19 +5,19 @@ import scala.collection.immutable.BitSet
 case class Scanner(init: Int, d: Array[Array[Int]], fin: BitSet) {
   def ~(cs: Iterable[Byte]): Int = {
     var q = init
-    var a = 0
+    var n = 0
 
     for ((c, i) <- cs.zipWithIndex) {
       d(q)(c) match {
         case 0 =>
-          return a
+          return n
         case qc =>
           // println(q + " -- " + Letter.fmt(c) + " --> " + qc)
           q = qc
-          if (fin contains q) a = i + 1
+          if (fin contains q) n = i + 1
       }
     }
-    return a
+    return n
   }
 }
 

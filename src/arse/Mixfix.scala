@@ -112,4 +112,12 @@ object Mixfix {
     }
     case _ => fail
   }
+  
+  def mixfix_op_test[T, O, A](m: T => Boolean, op: T => O): Parser[List[T], O] = parse {
+    case t :: in => m(t) match {
+      case true => (op(t), in)
+      case false => fail
+    }
+    case _ => fail
+  }
 }
