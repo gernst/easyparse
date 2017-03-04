@@ -66,8 +66,8 @@ object DFA {
   def goto(q: State): (Letter, (States, Transitions)) => (States, Transitions) = {
     case (c, (qs, d)) =>
       val qc = q derive c
-      val gs = q active c
-      val rs = q reset c
+      val gs = Set.empty[String] // q active c
+      val rs = Set.empty[String] // q reset c
       val dc = d + ((q, c) -> (gs, rs, qc))
       if (qs contains qc) {
         (qs, dc)

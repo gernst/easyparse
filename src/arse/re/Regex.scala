@@ -5,8 +5,6 @@ sealed trait Regex {
 
   def isNullable: Boolean
   def derive(c: Letter): Regex
-  def active(c: Letter): Groups
-  def reset(c: Letter): Groups
 
   def |(that: Regex) = Regex.or(Set(this, that))
   def &(that: Regex) = Regex.and(Set(this, that))
@@ -67,8 +65,6 @@ object Regex {
 case class Match(first: Letters) extends Regex {
   def isNullable = false
   def derive(c: Letter) = if (first contains c) Epsilon else Empty
-  def active(c: Letter) = Set()
-  def reset(c: Letter) = Set()
   override def toString = {
     if (first.size == 1 && Letter.isPrintable(first.head)) first.head.toChar.toString
     else Letters.compact(first)
@@ -94,15 +90,6 @@ case class Group(name: String, e: Regex) extends Regex {
   def first = e.first
   def isNullable = e.isNullable
   def derive(c: Letter) = Regex.group(name, e derive c)
-  def active(c: Letter) = {
-    if(first contains c) (e active c) + name
-    else (e active c)
-  }
-  def reset(c: Letter) = {
-    val d = e derive c
-    if(d == Epsilon || d == Empty) (e reset c) + name
-    else (e reset c)
-  }
   override def toString = "(" + name + ":" + e + ")"
 }
 
@@ -115,16 +102,6 @@ case class Seq(e1: Regex, e2: Regex) extends Regex {
   } else {
     ((e1 derive c) ~ e2)
   }
-  def active(c: Letter) = if (e1.isNullable) {
-    (e1 active c) | (e2 active c)
-  } else {
-    (e1 active c)
-  }
-  def reset(c: Letter) = if (e1.isNullable) {
-    (e1 reset c) | (e2 reset c)
-  } else {
-    (e1 reset c)
-  }
   override def toString = e1 + "" + e2
 }
 
@@ -132,8 +109,6 @@ case class Not(e: Regex) extends Regex {
   def first = Letters.alphabet -- e.first
   def isNullable = e.isNullable
   def derive(c: Letter) = ~(e derive c)
-  def active(c: Letter) = e active c
-  def reset(c: Letter) = e reset c
   override def toString = e match {
     case Empty => "."
     case _ => "~(" + e.toString + ")"
@@ -144,8 +119,6 @@ case class Rep(e: Regex) extends Regex {
   def first = e.first
   def isNullable = true
   def derive(c: Letter) = (e derive c) ~ this
-  def active(c: Letter) = e active c
-  def reset(c: Letter) = e reset c
   override def toString = e match {
     case _: Seq => "(" + e + ")*"
     case _ => e + "*"
@@ -156,8 +129,6 @@ case class Or(es: Set[Regex]) extends Regex {
   def first = es.foldLeft(Letters.empty)(_ | _.first)
   def isNullable = es exists (_.isNullable)
   def derive(c: Letter) = Regex.or(es map (_ derive c))
-  def active(c: Letter) = es.flatMap(_ active c)
-  def reset(c: Letter) = es.flatMap(_ reset c)
   override def toString = {
     if (es.isEmpty) "{}" else es mkString ("(", " | ", ")")
   }
@@ -167,8 +138,6 @@ case class And(es: Set[Regex]) extends Regex {
   def first = es.foldLeft(Letters.empty)(_ & _.first)
   def isNullable = es forall (_.isNullable)
   def derive(c: Letter) = if (es.isEmpty) Empty else Regex.and(es map (_ derive c))
-  def active(c: Letter) = es.flatMap(_ active c)
-  def reset(c: Letter) = es.flatMap(_ reset c)
   override def toString = {
     if (es.isEmpty) "$" else es mkString ("(", " & ", ")")
   }
