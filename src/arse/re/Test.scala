@@ -1,6 +1,13 @@
 package arse.re
 
 object Test {
+  def run(s: ScannerLike, in: String) = {
+    val bs = in.getBytes
+    val (q, n) = s ~ bs
+    val cs = new String(bs take n)
+    (q, cs)
+  }
+
   def main(args: Array[String]) {
     val a = Match('a')
     val b = Match('b')
@@ -17,8 +24,8 @@ object Test {
     dfa.print
     println
 
-    val in = "abc".getBytes
-    println("dfa matched " + new String(in take (dfa ~ in)._2))
-    println("scanner matched " + new String(in take (scanner ~ in)))
+    val in = "abc"
+    println("dfa matched " + run(dfa, in))
+    println("scanner matched " + run(scanner, in))
   }
 }

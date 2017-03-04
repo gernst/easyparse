@@ -2,29 +2,18 @@ package arse.re
 
 import scala.collection.immutable.BitSet
 
-case class DFA(qs: States, init: State, d: Transitions, fin: Set[State]) {
+case class DFA(qs: States, init: State, d: Transitions, fin: Set[State]) extends ScannerLike {
   import DFA._
-
-  def enter(i: Int, g: Set[String]) = {
-    if (!g.isEmpty)
-      println("enter " + g.mkString(" ") + " at " + i)
-  }
-
-  def leave(i: Int, g: Set[String]) = {
-    if (!g.isEmpty)
-      println("leave " + g.mkString(" ") + " at " + i)
-  }
 
   def ~(cs: Iterable[Byte]): (State, Int) = {
     var q = init
     var a = init
     var n = 0
-    // enter(0,g)
 
     for ((c, i) <- cs.zipWithIndex) {
       d get ((q, c)) match {
         case None =>
-          return (a,n)
+          return (a, n)
         case Some(qc) =>
           println(q + " -- " + Letter.fmt(c) + " --> " + qc)
           q = qc
@@ -34,7 +23,7 @@ case class DFA(qs: States, init: State, d: Transitions, fin: Set[State]) {
           }
       }
     }
-    return (a,n)
+    return (a, n)
   }
 
   def sts(qs: States) = {
@@ -78,7 +67,6 @@ object DFA {
 
   def explore(qs: States, d: Transitions, q: State): (States, Transitions) = {
     val cs = q.first
-    // val cs = (0 until 256)
     cs.foldRight((qs, d))(goto(q))
   }
 

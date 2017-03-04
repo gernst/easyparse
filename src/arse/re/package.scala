@@ -10,6 +10,10 @@ package object re {
     def derive(c: Letter): RegexLike
   }
 
+  trait ScannerLike {
+    def ~(cs: Iterable[Byte]): (State, Int)
+  }
+
   type Letter = Int
   type Letters = BitSet
   type State = RegexLike
