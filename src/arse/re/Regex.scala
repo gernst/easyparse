@@ -1,10 +1,13 @@
 package arse.re
 
-sealed trait Regex {
+sealed trait Regex extends RegexLike {
   def first: Letters
 
   def isNullable: Boolean
   def derive(c: Letter): Regex
+
+  def isEmpty = this == Empty
+  def isEpsilon = this == Epsilon
 
   def |(that: Regex) = Regex.or(Set(this, that))
   def &(that: Regex) = Regex.and(Set(this, that))
@@ -19,7 +22,7 @@ sealed trait Regex {
     case (Empty, _) => Empty
     case (_, Empty) => Empty
     case (Epsilon, _) => that
-    case (_, Epsilon) => this    
+    case (_, Epsilon) => this
     case (Seq(first, second), third) => Seq(first, Seq(second, third))
     case _ => Seq(this, that)
   }
@@ -55,11 +58,6 @@ object Regex {
     case Set1(e) => e
     case rs => And(rs)
   }
-
-  def group(name: String, e: Regex) = e match {
-    case Empty | Epsilon => e
-    case _ => Group(name, e)
-  }
 }
 
 case class Match(first: Letters) extends Regex {
@@ -84,13 +82,6 @@ object Match {
     if (b1 == 0) Match(b0)
     else Match(b1) ~ Match(b0)
   }
-}
-
-case class Group(name: String, e: Regex) extends Regex {
-  def first = e.first
-  def isNullable = e.isNullable
-  def derive(c: Letter) = Regex.group(name, e derive c)
-  override def toString = "(" + name + ":" + e + ")"
 }
 
 case class Seq(e1: Regex, e2: Regex) extends Regex {
@@ -130,7 +121,7 @@ case class Or(es: Set[Regex]) extends Regex {
   def isNullable = es exists (_.isNullable)
   def derive(c: Letter) = Regex.or(es map (_ derive c))
   override def toString = {
-    if (es.isEmpty) "{}" else es mkString ("(", " | ", ")")
+    if (es.isEmpty) "ε" else es mkString ("(", " | ", ")")
   }
 }
 

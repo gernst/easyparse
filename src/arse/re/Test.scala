@@ -8,8 +8,9 @@ object Test {
     // val qo = Match('“')
     // val qc = Match('”')
     // val re = a.+ ~ Group("BS", Group("B", b).*) ~ ((b ~ a ~ c) | (a ~ a ~ c))
-    val re = (Group("A", a ~ b) | Group("B", a)) ~ (Group("A", c) | Group("B", b ~ c))
+    // val re = ((a ~ b) | (a)) ~ ((c) | (b ~ c))
     // (Group("A", a ~ b) | (a ~ b)) ~ Group("C", c) // ~ Group("B", a.*)
+    val re = Lexical(Map("a" -> a, "b" -> a ~ b ~ c))
     val dfa = DFA(re)
     val scanner = Scanner(dfa)
 
@@ -17,7 +18,7 @@ object Test {
     println
 
     val in = "abc".getBytes
-    println("dfa matched " + new String(in take (dfa ~ in)))
+    println("dfa matched " + new String(in take (dfa ~ in)._2))
     println("scanner matched " + new String(in take (scanner ~ in)))
   }
 }
