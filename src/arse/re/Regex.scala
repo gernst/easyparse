@@ -1,6 +1,6 @@
 package arse.re
 
-sealed trait Regex extends RegexLike {
+sealed trait Regex extends Derivable {
   def first: Letters
 
   def isNullable: Boolean

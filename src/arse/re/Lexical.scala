@@ -1,6 +1,6 @@
 package arse.re
 
-case class Lexical(gs: Map[String, Regex]) extends RegexLike {
+case class Lexical(gs: Map[String, Regex]) extends Derivable {
   def first = gs.foldLeft(Letters.empty) {
     case (cs, (n, e)) => cs | e.first
   }

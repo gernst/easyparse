@@ -4,10 +4,10 @@ import scala.collection.immutable.BitSet
 
 package object re {
 
-  trait RegexLike {
+  trait Derivable {
     def first: Letters
     def isNullable: Boolean
-    def derive(c: Letter): RegexLike
+    def derive(c: Letter): Derivable
   }
 
   trait ScannerLike {
@@ -16,7 +16,7 @@ package object re {
 
   type Letter = Int
   type Letters = BitSet
-  type State = RegexLike
+  type State = Derivable
   type States = Set[State]
   type Groups = Set[String]
   type Transitions = Map[(State, Letter), State]

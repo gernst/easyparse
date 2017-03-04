@@ -70,7 +70,7 @@ object DFA {
     cs.foldRight((qs, d))(goto(q))
   }
 
-  def apply(init: RegexLike): DFA = {
+  def apply(init: Derivable): DFA = {
     val (qs, d) = explore(Set(init), Map(), init)
     val fin = qs filter (_.isNullable)
     DFA(qs, init, d, fin)
