@@ -11,7 +11,7 @@ case class DFA(qs: States, init: State, d: Transitions, fin: Set[State]) extends
     var n = 0
 
     for ((c, i) <- cs.zipWithIndex) {
-      d get ((q, c)) match {
+      d get ((q, Letter(c))) match {
         case None =>
           return (a, n)
         case Some(qc) =>

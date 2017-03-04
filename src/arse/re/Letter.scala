@@ -10,6 +10,9 @@ object Letter {
     if (isPrintable(i)) i.toChar.toString
     else "\\u" + i.toString
   }
+  def apply(b: Byte) = {
+    if(b < 0) b + 256 else b
+  }
 }
 
 object Letters {

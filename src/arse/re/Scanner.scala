@@ -9,7 +9,7 @@ case class Scanner(qs: Array[State], init: Int, d: Array[Array[Int]], fin: BitSe
     var n = 0
 
     for ((c, i) <- cs.zipWithIndex) {
-      d(q)(c) match {
+      d(q)(Letter(c)) match {
         case 0 =>
           return (a,n)
         case qc =>

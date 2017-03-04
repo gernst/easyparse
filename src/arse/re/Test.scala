@@ -9,9 +9,9 @@ object Test {
   }
 
   def main(args: Array[String]) {
-    val a = Match('a')
-    val b = Match('b')
-    val c = Match('c')
+    val a = Match("a")
+    val b = Match("b")
+    val c = Match("c")
     // val qo = Match('“')
     // val qc = Match('”')
     // val re = a.+ ~ Group("BS", Group("B", b).*) ~ ((b ~ a ~ c) | (a ~ a ~ c))
@@ -24,7 +24,7 @@ object Test {
     dfa.print
     println
 
-    val in = "abc"
+    val in = "ab"
     println("dfa matched " + run(dfa, in))
     println("scanner matched " + run(scanner, in))
   }

@@ -70,17 +70,18 @@ case class Match(first: Letters) extends Regex {
 }
 
 object Match {
+  def apply(b: Byte): Regex = {
+    Match(Letter(b))
+  }
+
   def apply(b: Int): Regex = {
     assert(0 <= b && b < 256)
     Match(Letters.empty + b)
   }
 
-  def apply(c: Char): Regex = {
-    // TODO: works on little endian
-    val b0 = (c >> 0) & 0xFF
-    val b1 = (c >> 8) & 0xFF
-    if (b1 == 0) Match(b0)
-    else Match(b1) ~ Match(b0)
+  def apply(s: String): Regex = {
+    val bs = s.getBytes
+    Seq(bs.map(b => Match(b)))
   }
 }
 
@@ -94,6 +95,12 @@ case class Seq(e1: Regex, e2: Regex) extends Regex {
     ((e1 derive c) ~ e2)
   }
   override def toString = e1 + "" + e2
+}
+
+object Seq {
+  def apply(es: Iterable[Regex]): Regex = {
+    es reduce (_ ~ _)
+  }
 }
 
 case class Not(e: Regex) extends Regex {
