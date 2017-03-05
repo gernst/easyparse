@@ -7,93 +7,111 @@ object ~ {
 }
 
 object parser {
-  def P[T, A](p: => Parser[T, A])(implicit ops: Ops, name: sourcecode.Name): Parser[T, A] = {
-    ops.rec(name.value, p)
-  }
+  import control._
 
-  implicit class BaseParser[T, A](p: Parser[T, A])(implicit ops: Ops) {
-    def seal = {
-      ops.seal(p)
+  case class Rec[T, A](name: String, p: () => Parser[T, A]) extends Parser[T, A] {
+    def apply(t: T) = {
+      p()(t)
     }
-
-    def ~(q: Recognizer[T]) = {
-      ops.seq(p, q)
-    }
-
-    def ~[B](q: Parser[T, B]) = {
-      ops.seq(p, q)
-    }
-    
-    def ~!(q: Recognizer[T]) = {
-      ops.seq(p, ops.commit(q))
-    }
-
-    def ~![B](q: Parser[T, B]) = {
-      ops.seq(p, ops.commit(q))
-    }
-
-    def |[B >: A](q: Parser[T, B]) = {
-      ops.or(p, q)
-    }
-
-    def *() = {
-      ops.rep(p)
-    }
-
-    def +() = {
-      p :: p.*
-    }
-
-    def ?() = {
-      (p map (Some(_))) | ops.ret(None)
-    }
-
-    def rep(sep: Recognizer[T]) = {
-      import recognizer._
-      p :: (sep ~ p).*
-    }
-
-    def map[B](f: A => B) = {
-      ops.map(p, f)
-    }
-
-    def filter(f: A => Boolean) = {
-      ops.filter(p, f)
-    }
-
-    def reduceLeft[B >: A](f: (B, A) => B) = {
-      p.+ map (_ reduceLeft f)
-    }
-
-    def reduceRight[B >: A](f: (A, B) => B) = {
-      p.+ map (_ reduceRight f)
-    }
-
-    def foldLeft[B](z: => Parser[T, B])(f: (B, A) => B) = {
-      (z ~ p.*) map {
-        case (b, as) => as.foldLeft(b)(f)
-      }
-    }
-
-    def foldRight[B](z: => Parser[T, B])(f: (A, B) => B) = {
-      (p.* ~ z) map {
-        case (as, b) => as.foldRight(b)(f)
-      }
+    def format = {
+      name
     }
   }
 
-  implicit class PairParser[T, A, B](p: Parser[T, (A, B)])(implicit ops: Ops) {
-    def _1() = p map (_._1)
-    def _2() = p map (_._2)
+  case class Ret[T, A](a: A) extends Parser[T, A] {
+    def apply(t: T) = {
+      (a, t)
+    }
+    def format = {
+      a.toString
+    }
   }
 
-  implicit class ListParser[T, A](p: Parser[T, List[A]])(implicit ops: Ops) {
-    def ::(q: Parser[T, A]) = {
-      (q ~ p) map { case (a, as) => a :: as }
+  case class Commit[T, A](p: Parser[T, A]) extends Parser[T, A] {
+    def apply(t: T) = {
+      p(t) or abort(p.toString + " failed", t)
     }
+    def format = {
+      p.format
+    }
+  }
 
-    def ++(q: Parser[T, List[A]]) = {
-      (p ~ q) map { case (as, bs) => as ++ bs }
+  case class Seq[T, A, B](p: Parser[T, A], q: Parser[T, B]) extends Parser[T, (A, B)] {
+    def apply(t0: T) = {
+      val (a, t1) = p(t0)
+      val (b, t2) = q(t1)
+      ((a, b), t2)
+    }
+    def format = {
+      p.format + " ~ " + q.format
+    }
+  }
+
+  case class Or[T, A](p: Parser[T, A], q: Parser[T, A]) extends Parser[T, A] {
+    def apply(t: T) = {
+      p(t) or q(t)
+    }
+    def format = {
+      parens(p.format + " | " + q.format)
+    }
+  }
+
+  case class Rep[T, A](p: Parser[T, A]) extends Parser[T, List[A]] {
+    def apply(t0: T) = {
+      val (a, t1) = p(t0)
+      val (as, t2) = this(t1)
+      (a :: as, t2)
+    } or {
+      (Nil, t0)
+    }
+    def format = p match {
+      case _: Seq[_, _, _] => parens(p.format) + "*"
+      case _: SeqR[_, _] => parens(p.format) + "*"
+      case _: SeqP[_, _] => parens(p.format) + "*"
+      case _ => p.format + "*"
+    }
+  }
+
+  case class Map[T, A, B](p: Parser[T, A], f: A => B) extends Parser[T, B] {
+    def apply(t0: T) = {
+      val (a, t1) = p(t0)
+      (f(a), t1)
+    }
+    def format = {
+      p.format
+    }
+  }
+
+  case class Filter[T, A](p: Parser[T, A], f: A => Boolean) extends Parser[T, A] {
+    def apply(t0: T) = {
+      val (a, t1) = p(t0)
+      if (!f(a)) fail
+      (a, t1)
+    }
+    def format = {
+      p.format
+    }
+  }
+
+  case class SeqP[T, A](p: Recognizer[T], q: Parser[T, A]) extends Parser[T, A] {
+    def apply(t0: T) = {
+      val t1 = p(t0)
+      val (a, t2) = q(t1)
+      (a, t2)
+    }
+    def format = {
+      p.format + " ~ " + q.format
+    }
+  }
+
+  case class SeqR[T, A](p: Parser[T, A], q: Recognizer[T]) extends Parser[T, A] {
+    def apply(t0: T) = {
+      val (a, t1) = p(t0)
+      val t2 = q(t1)
+      (a, t2)
+    }
+    def format = {
+      p.format + " ~ " + q.format
     }
   }
 }

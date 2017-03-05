@@ -1,53 +1,66 @@
 package arse
 
 object recognizer {
-  def R[T](p: => Recognizer[T])(implicit ops: Ops, name: sourcecode.Name): Recognizer[T] = {
-    ops.rec(name.value, p)
+  import control._
+
+  case class Rec[T](name: String, p: () => Recognizer[T]) extends Recognizer[T] {
+    def apply(t: T) = {
+      p()(t)
+    }
+    def format = {
+      name
+    }
   }
 
-  implicit class BaseRecognizer[T](p: Recognizer[T])(implicit ops: Ops) {
-    def seal = {
-      ops.seal(p)
+  case class Accept[T]() extends Recognizer[T] {
+    def apply(t: T) = {
+      t
     }
-
-    def ~(q: Recognizer[T]) = {
-      ops.seq(p, q)
+    def format = {
+      "()"
     }
+  }
 
-    def ~[A](q: Parser[T, A]) = {
-      ops.seq(p, q)
+  case class Commit[T](p: Recognizer[T]) extends Recognizer[T] {
+    def apply(t: T) = {
+      p(t) or abort(p.toString + " failed", t)
     }
-
-    def ~!(q: Recognizer[T]) = {
-      ops.seq(p, ops.commit(q))
+    def format = {
+      p.format
     }
+  }
 
-    def ~![A](q: Parser[T, A]) = {
-      ops.seq(p, ops.commit(q))
+  case class Seq[T](p: Recognizer[T], q: Recognizer[T]) extends Recognizer[T] {
+    def apply(t0: T) = {
+      val t1 = p(t0)
+      val t2 = q(t1)
+      t2
     }
-
-    def |(q: Recognizer[T]) = {
-      ops.or(p, q)
+    def format = {
+      p.format + " ~ " + q.format
     }
+  }
 
-    def *() = {
-      ops.rep(p)
+  case class Or[T](p: Recognizer[T], q: Recognizer[T]) extends Recognizer[T] {
+    def apply(t: T) = {
+      p(t) or q(t)
     }
-
-    def +() = {
-      p ~ p.*
+    def format = {
+      parens(p.format + " | " + q.format)
     }
+  }
 
-    def ?() = {
-      p | ops.accept
+  case class Rep[T](p: Recognizer[T]) extends Recognizer[T] {
+    def apply(t0: T) = {
+      val t1 = p(t0)
+      val t2 = this(t1)
+      t2
+    } or {
+      t0
     }
-
-    def rep(sep: Recognizer[T]) = {
-      p ~ (sep ~ p).*
-    }
-
-    def map[A](a: A) = {
-      p ~ ops.ret[T, A](a)
+    def format = p match {
+      case _: Seq[_] => parens(p.format) + "*"
+      case _ => p.format + "*"
     }
   }
 }
