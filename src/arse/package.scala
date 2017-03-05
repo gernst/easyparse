@@ -5,6 +5,14 @@
 package object arse {
   def parens(str: String) = "(" + str + ")"
 
+  implicit def toRecognizer[T](t: T): Recognizer[List[T]] = ???
+  implicit def toBaseRecognizer[T](t: T): BaseRecognizer[List[T]] = ???
+
+  def int: Parser[List[String], Int] = ???
+  def string: Parser[List[String], String] = ???
+  def lit[T, A](p: Recognizer[List[T]], a: A) = p map a
+  def ret[S, A](a: A) = parser.Ret[S,A](a)
+
   trait Seq
 
   trait Format {
@@ -108,9 +116,17 @@ package object arse {
     def map[B](f: A => B): Parser[S, B] = {
       parser.Map(p, f)
     }
-
+    
+    def collect[B](f: PartialFunction[A,B]): Parser[S, B] = {
+      filter(f.isDefinedAt) map f
+    }
+    
     def filter(f: A => Boolean): Parser[S, A] = {
       parser.Filter(p, f)
+    }
+
+    def filterNot(f: A => Boolean): Parser[S, A] = {
+      parser.Filter(p, (a: A) => !f(a))
     }
 
     def reduceLeft[B >: A](f: (B, A) => B): Parser[S, B] = {
