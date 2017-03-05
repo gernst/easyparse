@@ -153,26 +153,26 @@ package object arse {
     }
   }
 
-  implicit class ParseFunction1[A1, B](f: (A1) => B) {
+  implicit class ParseFunction1[A1, B](f: (A1) => B)(implicit name: sourcecode.Name) {
     def from[S](p1: Parser[S, A1]): Parser[S, B] = {
-      parser.Seq1(p1, f)
+      P(parser.Seq1(p1, f))(name)
     }
   }
 
-  implicit class ParseFunction2[A1, A2, B](f: (A1, A2) => B) {
+  implicit class ParseFunction2[A1, A2, B](f: (A1, A2) => B)(implicit name: sourcecode.Name) {
     def from[S](p1: Parser[S, A1], p2: Parser[S, A2]): Parser[S, B] = {
-      parser.Seq2(p1, p2, f)
+      P(parser.Seq2(p1, p2, f))(name)
     }
   }
-  implicit class ParseFunction3[A1, A2, A3, B](f: (A1, A2, A3) => B) {
+  implicit class ParseFunction3[A1, A2, A3, B](f: (A1, A2, A3) => B)(implicit name: sourcecode.Name) {
     def from[S](p1: Parser[S, A1], p2: Parser[S, A2], p3: Parser[S, A3]): Parser[S, B] = {
-      parser.Seq3(p1, p2, p3, f)
+      P(parser.Seq3(p1, p2, p3, f))(name)
     }
   }
 
-  implicit class ParseFunction4[A1, A2, A3, A4, B](f: (A1, A2, A3, A4) => B) {
+  implicit class ParseFunction4[A1, A2, A3, A4, B](f: (A1, A2, A3, A4) => B)(implicit name: sourcecode.Name) {
     def from[S](p1: Parser[S, A1], p2: Parser[S, A2], p3: Parser[S, A3], p4: Parser[S, A4]): Parser[S, B] = {
-      parser.Seq4(p1, p2, p3, p4, f)
+      P(parser.Seq4(p1, p2, p3, p4, f))(name)
     }
   }
 }

@@ -38,8 +38,13 @@ trait Mixfix[S, O, E] extends Parser[S, E] {
   def postfix_op: Parser[S, (O, Int)]
   def infix_op: Parser[S, (O, (Assoc, Int))]
 
-  def unary(op: O, arg: E) = apply(op, List(arg))
-  def binary(op: O, arg1: E, arg2: E) = apply(op, List(arg1, arg2))
+  def unary(op: O, arg: E) = {
+    apply(op, List(arg))
+  }
+  
+  def binary(op: O, arg1: E, arg2: E) = {
+    apply(op, List(arg1, arg2))
+  }
 
   def prefix_app(lower: Int, s0: S) = {
     val ((op, prec), s1) = prefix_op(s0)
@@ -84,7 +89,9 @@ trait Mixfix[S, O, E] extends Parser[S, E] {
     postinfix_app(lower, Max, left, s1)
   }
 
-  def apply(s: S) = mixfix_app(Min, s)
+  def apply(s: S) = {
+    mixfix_app(Min, s)
+  }
 }
 
 object Mixfix {
