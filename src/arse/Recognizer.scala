@@ -3,60 +3,60 @@ package arse
 object recognizer {
   import control._
 
-  case class Rec[T](name: String, p: () => Recognizer[T]) extends Recognizer[T] {
-    def apply(t: T) = {
-      p()(t)
+  case class Rec[S](name: String, p: () => Recognizer[S]) extends Recognizer[S] {
+    def apply(s: S) = {
+      p()(s)
     }
     def format = {
       name
     }
   }
 
-  case class Accept[T]() extends Recognizer[T] {
-    def apply(t: T) = {
-      t
+  case class Accept[S]() extends Recognizer[S] {
+    def apply(s: S) = {
+      s
     }
     def format = {
       "()"
     }
   }
 
-  case class Commit[T](p: Recognizer[T]) extends Recognizer[T] {
-    def apply(t: T) = {
-      p(t) or abort(p.toString + " failed", t)
+  case class Commit[S](p: Recognizer[S]) extends Recognizer[S] {
+    def apply(s: S) = {
+      p(s) or abort(p.toString + " failed", s)
     }
     def format = {
       p.format
     }
   }
 
-  case class Seq[T](p: Recognizer[T], q: Recognizer[T]) extends Recognizer[T] {
-    def apply(t0: T) = {
-      val t1 = p(t0)
-      val t2 = q(t1)
-      t2
+  case class Seq[S](p: Recognizer[S], q: Recognizer[S]) extends Recognizer[S] {
+    def apply(s0: S) = {
+      val s1 = p(s0)
+      val s2 = q(s1)
+      s2
     }
     def format = {
       p.format + " ~ " + q.format
     }
   }
 
-  case class Or[T](p: Recognizer[T], q: Recognizer[T]) extends Recognizer[T] {
-    def apply(t: T) = {
-      p(t) or q(t)
+  case class Or[S](p: Recognizer[S], q: Recognizer[S]) extends Recognizer[S] {
+    def apply(s: S) = {
+      p(s) or q(s)
     }
     def format = {
       parens(p.format + " | " + q.format)
     }
   }
 
-  case class Rep[T](p: Recognizer[T]) extends Recognizer[T] {
-    def apply(t0: T) = {
-      val t1 = p(t0)
-      val t2 = this(t1)
-      t2
+  case class Rep[S](p: Recognizer[S]) extends Recognizer[S] {
+    def apply(s0: S) = {
+      val s1 = p(s0)
+      val s2 = this(s1)
+      s2
     } or {
-      t0
+      s0
     }
     def format = p match {
       case _: Seq[_] => parens(p.format) + "*"
