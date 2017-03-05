@@ -3,7 +3,12 @@ package arse.cf
 import scala.collection.mutable
 import scala.annotation.tailrec
 
+object ~ {
+  def unapply[A, B](p: (A, B)): Option[(A, B)] = Some(p)
+}
+
 trait Parser[-T, +A] extends (Iterable[T] => Iterable[A]) {
+  def prints: Boolean
   def epsilon: Result[A]
   def derive(t: T): Parser[T, A]
 
@@ -31,20 +36,39 @@ trait Parser[-T, +A] extends (Iterable[T] => Iterable[A]) {
     case _ => Or(this, that)
   }
 
-  def ?(): Parser[T, Option[A]] = {
-    (this map ((a: A) => Some(a))) | result(None)
-  }
-  
-  def *(): Parser[T, List[A]] = {
-    Rep(this)
-  }
-  
-  def +(): Parser[T, List[A]] = {
-    this :: this.*
+  def ~>[S <: T, B](that: Parser[S, B]) = (this ~ that)._2
+  def <~[S <: T, B](that: Parser[S, B]) = (this ~ that)._1
+
+  def ?() = (this map ((a: A) => Some(a))) | result(None)
+  def *() = Rep(this)
+  def +() = this :: this.*
+
+  def rep[S <: T, B](sep: Parser[S, B]) = {
+    this :: (sep ~> this).*
   }
 
   def map[B](f: A => B): Parser[T, B] = {
     this lift ((as: Iterable[A]) => as map f)
+  }
+
+  def reduceLeft[B >: A](f: (B, A) => B): Parser[T,B] = {  
+    this.+ map (_ reduceLeft f)
+  }
+
+  def reduceRight[B >: A](f: (A, B) => B): Parser[T,B] = {  
+    this.+ map (_ reduceRight f)
+  }
+
+  def foldLeft[S <: T, B](z: => Parser[S, B])(f: (B, A) => B): Parser[S, B] = {
+    (z ~ this.*) map {
+      case (b, as) => as.foldLeft(b)(f)
+    }
+  }
+
+  def foldRight[S <: T, B](z: => Parser[S, B])(f: (A, B) => B): Parser[S, B] = {
+    (this.* ~ z) map {
+      case (as, b) => as.foldRight(b)(f)
+    }
   }
 
   def filter(p: A => Boolean): Parser[T, A] = {
@@ -58,6 +82,7 @@ trait Parser[-T, +A] extends (Iterable[T] => Iterable[A]) {
 }
 
 case class Result[+A](as: Iterable[A]) extends Parser[Any, A] {
+  def prints = false
   def epsilon = this
   def derive(t: Any) = Empty
 
@@ -74,20 +99,33 @@ case class Result[+A](as: Iterable[A]) extends Parser[Any, A] {
   }
 
   override def toString = as match {
-    case Nil => "ε"
-    case _ => "_"
+    case Nil => "fail"
+    case _ => as.mkString("Result(", ", ", ")")
   }
 }
 
+case class Rule[-T, +A](name: String, p: Parser[T, A]) extends Parser[T, A] {
+  def prints = true
+  def epsilon = p.epsilon
+  def derive(t: T) = p derive t
+  override def toString = name
+}
+
 case class Lit[A](a: A) extends Parser[A, A] {
+  def prints = true
   def epsilon = Empty
   def derive(t: A) = {
     if (a == t) Result(Iterable(a)) else Empty
   }
-  override def toString = a.toString
+  override def toString = a match {
+    case c: Char => "'" + c + "'"
+    case s: String => "\"" + s + "\""
+    case _ => a.toString
+  }
 }
 
 case class Match[A](p: A => Boolean) extends Parser[A, A] {
+  def prints = true
   def epsilon = Empty
   def derive(t: A) = {
     if (p(t)) Result(Iterable(t)) else Empty
@@ -96,18 +134,29 @@ case class Match[A](p: A => Boolean) extends Parser[A, A] {
 }
 
 case class Seq[-T, +A, +B](p1: Parser[T, A], p2: Parser[T, B]) extends Parser[T, (A, B)] {
+  def prints = p1.prints || p2.prints
   def epsilon = p1.epsilon ~ p2.epsilon
   def derive(t: T) = ((p1 derive t) ~ p2) | ((p1 epsilon) ~ (p2 derive t))
-  override def toString = p1 + "" + p2
+  override def toString = {
+    if (!p1.prints) p2.toString
+    else if (!p2.prints) p1.toString
+    else p1 + " ~ " + p2
+  }
 }
 
 case class Or[-T, +A](p1: Parser[T, A], p2: Parser[T, A]) extends Parser[T, A] {
+  def prints = p1.prints || p2.prints
   def epsilon = p1.epsilon | p2.epsilon
   def derive(t: T) = (p1 derive t) | (p2 derive t)
-  override def toString = "(" + p1 + " | " + p2 + ")"
+  override def toString = {
+    if (!p1.prints) p2.toString
+    else if (!p2.prints) p1.toString
+    else "(" + p1 + " | " + p2 + ")"
+  }
 }
 
 case class Rep[-T, +A](p: Parser[T, A]) extends Parser[T, List[A]] {
+  def prints = true
   def epsilon = Result(Iterable(Nil))
   def derive(t: T) = (p derive t) :: this
   override def toString = p match {
@@ -117,12 +166,14 @@ case class Rep[-T, +A](p: Parser[T, A]) extends Parser[T, List[A]] {
 }
 
 case class Lift[-T, A, B](p: Parser[T, A], f: Iterable[A] => Iterable[B]) extends Parser[T, B] {
+  override def prints = p.prints
   def epsilon = p.epsilon lift f
   def derive(t: T) = (p derive t) lift f
   override def toString = p.toString
 }
 
 class Rec[T, A](_p: => Parser[T, A]) extends Parser[T, A] {
+  def prints = true
   lazy val p = _p
 
   var _epsilon: Option[Result[A]] = None
@@ -136,8 +187,7 @@ class Rec[T, A](_p: => Parser[T, A]) extends Parser[T, A] {
   }
 
   def derive(t: T) = _derive.get(t) getOrElse {
-    _derive(t) = new Rec(p derive t)
-    val q = p derive t
+    val q = rec(p derive t)
     _derive(t) = q
     q
   }
