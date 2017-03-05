@@ -99,7 +99,7 @@ case class Seq(e1: Regex, e2: Regex) extends Regex {
 
 object Seq {
   def apply(es: Iterable[Regex]): Regex = {
-    es reduce (_ ~ _)
+    es.foldRight(Epsilon)(_ ~ _)
   }
 }
 
