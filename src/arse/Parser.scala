@@ -1,18 +1,91 @@
 package arse
 
+trait Parser[T, +A] {
+  def seal: (T => (A, T))
+}
+
 object ~ {
-  def unapply[A, B](p: (A, B)): Option[(A, B)] = Some(p)
+  def unapply[A, B](p: (A, B)): Option[(A, B)] = {
+    Some(p)
+  }
 }
 
-trait Impl {
-  def ret[A](a: A): Parser[Any, A]
-  def seq[T, A, B](p: Parser[T, A], q: Parser[T, B]): Parser[T, (A, B)]
-  def or[T, A](p: Parser[T, A], q: Parser[T, A]): Parser[T, A]
-  def rep[T, A](p: Parser[T, A]): Parser[T, List[A]]
-  def lift[T, A, B](p: Parser[T, A], f: Iterable[A] => Iterable[B]): Parser[T, B]
-}
+object parser {
+  def P[T, A](p: => Parser[T, A])(implicit ops: Ops, name: sourcecode.Name): Parser[T, A] = {
+    ops.rec(name.value, p)
+  }
 
-trait Parser[-T, +A] extends (Iterable[T] => Iterable[A]) {
+  implicit class BaseParser[T, A](p: Parser[T, A])(implicit ops: Ops) {
+    def ~(q: Recognizer[T]) = {
+      ops.seq(p, q)
+    }
 
-  
+    def ~[B](q: Parser[T, B]) = {
+      ops.seq(p, q)
+    }
+
+    def |[B >: A](q: Parser[T, B]) = {
+      ops.or(p, q)
+    }
+
+    def *() = {
+      ops.rep(p)
+    }
+
+    def +() = {
+      p :: p.*
+    }
+
+    def ?() = {
+      (p map (Some(_))) | ops.ret(None)
+    }
+
+    def rep(sep: Recognizer[T]) = {
+      import recognizer._
+      p :: (sep ~ p).*
+    }
+
+    def map[B](f: A => B) = {
+      ops.map(p, f)
+    }
+
+    def filter(f: A => Boolean) = {
+      ops.filter(p, f)
+    }
+
+    def reduceLeft[B >: A](f: (B, A) => B) = {
+      p.+ map (_ reduceLeft f)
+    }
+
+    def reduceRight[B >: A](f: (A, B) => B) = {
+      p.+ map (_ reduceRight f)
+    }
+
+    def foldLeft[B](z: => Parser[T, B])(f: (B, A) => B) = {
+      (z ~ p.*) map {
+        case (b, as) => as.foldLeft(b)(f)
+      }
+    }
+
+    def foldRight[B](z: => Parser[T, B])(f: (A, B) => B) = {
+      (p.* ~ z) map {
+        case (as, b) => as.foldRight(b)(f)
+      }
+    }
+  }
+
+  implicit class PairParser[T, A, B](p: Parser[T, (A, B)])(implicit ops: Ops) {
+    def _1() = p map (_._1)
+    def _2() = p map (_._2)
+  }
+
+  implicit class ListParser[T, A](p: Parser[T, List[A]])(implicit ops: Ops) {
+    def ::(q: Parser[T, A]) = {
+      (q ~ p) map { case (a, as) => a :: as }
+    }
+
+    def ++(q: Parser[T, List[A]]) = {
+      (p ~ q) map { case (as, bs) => as ++ bs }
+    }
+  }
 }
