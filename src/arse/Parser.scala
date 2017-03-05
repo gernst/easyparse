@@ -1,9 +1,5 @@
 package arse
 
-trait Parser[T, +A] {
-  def seal: (T => (A, T))
-}
-
 object ~ {
   def unapply[A, B](p: (A, B)): Option[(A, B)] = {
     Some(p)
@@ -16,12 +12,24 @@ object parser {
   }
 
   implicit class BaseParser[T, A](p: Parser[T, A])(implicit ops: Ops) {
+    def seal = {
+      ops.seal(p)
+    }
+
     def ~(q: Recognizer[T]) = {
       ops.seq(p, q)
     }
 
     def ~[B](q: Parser[T, B]) = {
       ops.seq(p, q)
+    }
+    
+    def ~!(q: Recognizer[T]) = {
+      ops.seq(p, ops.commit(q))
+    }
+
+    def ~![B](q: Parser[T, B]) = {
+      ops.seq(p, ops.commit(q))
     }
 
     def |[B >: A](q: Parser[T, B]) = {
