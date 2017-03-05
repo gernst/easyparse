@@ -34,7 +34,7 @@ object recognizer {
     }
   }
 
-  case class Seq[S](p: Recognizer[S], q: Recognizer[S]) extends Recognizer[S] {
+  case class Seq[S](p: Recognizer[S], q: Recognizer[S]) extends Recognizer[S] with arse.Seq {
     def apply(s0: S) = {
       val s1 = p(s0)
       val s2 = q(s1)
@@ -63,7 +63,7 @@ object recognizer {
       s0
     }
     def format = p match {
-      case _: Seq[_] => parens(p.format) + "*"
+      case _: arse.Seq => parens(p.format) + "*"
       case _ => p.format + "*"
     }
   }

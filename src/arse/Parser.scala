@@ -40,7 +40,7 @@ object parser {
     }
   }
 
-  case class Seq[S, A, B](p: Parser[S, A], q: Parser[S, B]) extends Parser[S, (A, B)] {
+  case class Seq[S, A, B](p: Parser[S, A], q: Parser[S, B]) extends Parser[S, (A, B)] with arse.Seq {
     def apply(s0: S) = {
       val (a, s1) = p(s0)
       val (b, s2) = q(s1)
@@ -69,9 +69,7 @@ object parser {
       (Nil, s0)
     }
     def format = p match {
-      case _: Seq[_, _, _] => parens(p.format) + "*"
-      case _: SeqR[_, _] => parens(p.format) + "*"
-      case _: SeqP[_, _] => parens(p.format) + "*"
+      case _: arse.Seq => parens(p.format) + "*"
       case _ => p.format + "*"
     }
   }
@@ -97,7 +95,7 @@ object parser {
     }
   }
 
-  case class SeqP[S, A](p: Recognizer[S], q: Parser[S, A]) extends Parser[S, A] {
+  case class SeqP[S, A](p: Recognizer[S], q: Parser[S, A]) extends Parser[S, A] with arse.Seq {
     def apply(s0: S) = {
       val s1 = p(s0)
       val (a, s2) = q(s1)
@@ -108,7 +106,7 @@ object parser {
     }
   }
 
-  case class SeqR[S, A](p: Parser[S, A], q: Recognizer[S]) extends Parser[S, A] {
+  case class SeqR[S, A](p: Parser[S, A], q: Recognizer[S]) extends Parser[S, A] with arse.Seq {
     def apply(s0: S) = {
       val (a, s1) = p(s0)
       val s2 = q(s1)
@@ -116,6 +114,52 @@ object parser {
     }
     def format = {
       p.format + " ~ " + q.format
+    }
+  }
+
+  case class Seq1[S, A1, B](p1: Parser[S, A1], f: (A1) => B) extends Parser[S, B] with arse.Seq {
+    def apply(s0: S) = {
+      val (a1, s1) = p1(s0)
+      (f(a1), s1)
+    }
+    def format = {
+      p1.format
+    }
+  }
+
+  case class Seq2[S, A1, A2, B](p1: Parser[S, A1], p2: Parser[S, A2], f: (A1, A2) => B) extends Parser[S, B] with arse.Seq {
+    def apply(s0: S) = {
+      val (a1, s1) = p1(s0)
+      val (a2, s2) = p2(s1)
+      (f(a1, a2), s2)
+    }
+    def format = {
+      p1.format + " ~ " + p2.format
+    }
+  }
+
+  case class Seq3[S, A1, A2, A3, B](p1: Parser[S, A1], p2: Parser[S, A2], p3: Parser[S,A3], f: (A1, A2, A3) => B) extends Parser[S, B] with arse.Seq {
+    def apply(s0: S) = {
+      val (a1, s1) = p1(s0)
+      val (a2, s2) = p2(s1)
+      val (a3, s3) = p3(s2)
+      (f(a1, a2, a3), s3)
+    }
+    def format = {
+      p1.format + " ~ " + p2.format + " ~ " + p3.format
+    }
+  }
+
+  case class Seq4[S, A1, A2, A3, A4, B](p1: Parser[S, A1], p2: Parser[S, A2], p3: Parser[S,A3], p4: Parser[S,A4], f: (A1, A2, A3, A4) => B) extends Parser[S, B] with arse.Seq {
+    def apply(s0: S) = {
+      val (a1, s1) = p1(s0)
+      val (a2, s2) = p2(s1)
+      val (a3, s3) = p3(s2)
+      val (a4, s4) = p4(s3)
+      (f(a1, a2, a3, a4), s4)
+    }
+    def format = {
+      p1.format + " ~ " + p2.format + " ~ " + p3.format + " ~ " + p4.format
     }
   }
 }

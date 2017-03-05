@@ -4,7 +4,9 @@
 
 package object arse {
   def parens(str: String) = "(" + str + ")"
-  
+
+  trait Seq
+
   trait Recognizer[S] extends (S => S) {
     def format: String
     override def toString = format
@@ -148,6 +150,29 @@ package object arse {
 
     def ++(q: Parser[S, List[A]]): Parser[S, List[A]] = {
       (p ~ q) map { case (as, bs) => as ++ bs }
+    }
+  }
+
+  implicit class ParseFunction1[A1, B](f: (A1) => B) {
+    def from[S](p1: Parser[S, A1]): Parser[S, B] = {
+      parser.Seq1(p1, f)
+    }
+  }
+
+  implicit class ParseFunction2[A1, A2, B](f: (A1, A2) => B) {
+    def from[S](p1: Parser[S, A1], p2: Parser[S, A2]): Parser[S, B] = {
+      parser.Seq2(p1, p2, f)
+    }
+  }
+  implicit class ParseFunction3[A1, A2, A3, B](f: (A1, A2, A3) => B) {
+    def from[S](p1: Parser[S, A1], p2: Parser[S, A2], p3: Parser[S, A3]): Parser[S, B] = {
+      parser.Seq3(p1, p2, p3, f)
+    }
+  }
+
+  implicit class ParseFunction4[A1, A2, A3, A4, B](f: (A1, A2, A3, A4) => B) {
+    def from[S](p1: Parser[S, A1], p2: Parser[S, A2], p3: Parser[S, A3], p4: Parser[S, A4]): Parser[S, B] = {
+      parser.Seq4(p1, p2, p3, p4, f)
     }
   }
 }
