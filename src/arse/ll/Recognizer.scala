@@ -2,7 +2,7 @@
 // (c) 2016 Gidon Ernst <gidonernst@gmail.com>
 // This code is licensed under MIT license (see LICENSE for details)
 
-package arse
+package arse.ll
 
 import scala.language.implicitConversions
 import scala.util.matching.Regex

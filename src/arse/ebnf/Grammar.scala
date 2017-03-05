@@ -1,7 +1,9 @@
 package arse.ebnf
 
 import scala.language.postfixOps
-import arse._
+
+import arse.examples
+import arse.ll._
 
 case class Grammar(rules: Map[Id, Expr]) {
   override def toString = {

@@ -1,6 +1,6 @@
 package arse
 
-import arse._
+import arse.ll._
 
 package object simple {
   // trait ~>[S, +A] extends (S => (A, S))

@@ -1,6 +1,6 @@
 package arse.bi
 
-import arse._
+import arse.ll._
 
 case class Elem[S](x: S) extends Lit[List[S]] {
   override def toString = "'" + x + "'"

@@ -1,6 +1,6 @@
 package arse.bi
 
-import arse._
+import arse.ll._
 
 case class Alt[A, S](p: Rel[A, S], q: Rel[A, S]) extends Rel[A, S] {
   override def toString = "(" + p + " | " + q + ")"

@@ -2,7 +2,7 @@ package arse
 
 import scala.language.implicitConversions
 
-import arse._
+import arse.ll._
 
 package object bi {
   type ClassTag[A] = scala.reflect.ClassTag[A]

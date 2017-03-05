@@ -1,47 +1,80 @@
-// ARSE Parser libary
-// (c) 2016 Gidon Ernst <gidonernst@gmail.com>
-// This code is licensed under MIT license (see LICENSE for details)
 
-import scala.reflect.ClassTag
-import scala.annotation.Annotation
 
 package object arse {
-  trait Backtrack extends Throwable
-
-  object Fail extends Backtrack {
-    override def toString = "<generic failure>"
-    override def fillInStackTrace = this
-    override val getStackTrace = Array[StackTraceElement]()
-  }
-
-  case class Abort[I](msg: String, in: I) extends Exception {
-    override def toString = {
-      // val (toks, rest) = in.splitAt(4)
-      val at = in // toks.mkString(" ") + (if (rest == Nil) "" else "...")
-      msg + " at '" + at + "'"
+  implicit class BaseParser[T, A](p: Parser[T, A])(implicit impl: Impl) {
+    def ~[S <: T, B](q: Parser[S, B])(implicit impl: Impl) = {
+      impl.seq(p, q)
     }
-  }
 
-  def fail = throw Fail
-  def abort[I](msg: String, in: I) = throw Abort(msg, in)
+    def |[S <: T, B >: A](q: Parser[S, B]) = {
+      impl.or(p, q)
+    }
 
-  implicit class Control[A](first: => A) {
-    def or[B <: A](second: => B) = {
-      try {
-        first
-      } catch {
-        case _: Backtrack =>
-          second
+    def * = {
+      impl.rep(p)
+    }
+
+    def + = {
+      p :: p.*
+    }
+
+    def ? = {
+      (p map ((a: A) => Some(a))) | impl.ret(None)
+    }
+
+    def ~>[S <: T, B](q: Parser[S, B]) = {
+      (p ~ q)._2
+    }
+
+    def <~[S <: T, B](q: Parser[S, B]) = {
+      (p ~ q)._1
+    }
+
+    def rep[S <: T, B](sep: Parser[S, B]) = {
+      p :: (sep ~> p).*
+    }
+
+    def map[B](f: A => B) = {
+      impl.lift(p, (as: Iterable[A]) => as map f)
+    }
+
+    def filter(f: A => Boolean) = {
+      impl.lift(p, (as: Iterable[A]) => as filter f)
+    }
+
+    def reduceLeft[B >: A](f: (B, A) => B) = {
+      p.+ map (_ reduceLeft f)
+    }
+
+    def reduceRight[B >: A](f: (A, B) => B) = {
+      p.+ map (_ reduceRight f)
+    }
+
+    def foldLeft[S <: T, B](z: => Parser[S, B])(f: (B, A) => B) = {
+      (z ~ p.*) map {
+        case (b, as) => as.foldLeft(b)(f)
       }
     }
 
-    def mask[E <: Throwable](implicit ev: ClassTag[E]) = {
-      try {
-        first
-      } catch {
-        case _: E =>
-          fail
+    def foldRight[S <: T, B](z: => Parser[S, B])(f: (A, B) => B) = {
+      (p.* ~ z) map {
+        case (as, b) => as.foldRight(b)(f)
       }
+    }
+  }
+
+  implicit class PairParser[T, A, B](p: Parser[T, (A, B)])(implicit impl: Impl) {
+    def _1() = p map (_._1)
+    def _2() = p map (_._2)
+  }
+
+  implicit class ListParser[T, A](p: Parser[T, List[A]])(implicit impl: Impl) {
+    def ::(q: Parser[T, A]) = {
+      (q ~ p) map { case (a, as) => a :: as }
+    }
+
+    def ++(q: Parser[T, List[A]]) = {
+      (p ~ q) map { case (as, bs) => as ++ bs }
     }
   }
 }

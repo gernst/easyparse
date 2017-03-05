@@ -1,6 +1,6 @@
 package arse.bi
 
-import arse._
+import arse.ll._
 
 case class Filter[A, C, S](p: Rel[A, S], t: A => C, c: C)(implicit ev: ClassTag[A]) extends Rel[A, S] {
   override def toString = "" + p

@@ -1,6 +1,6 @@
 package arse.bi
 
-import arse._
+import arse.ll._
 
 case class Tok[A](name: String = "__")(implicit ev: ClassTag[A]) extends Rel[A, List[A]] {
   override def toString = name

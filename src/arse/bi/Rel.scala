@@ -1,6 +1,6 @@
 package arse.bi
 
-import arse._
+import arse.ll._
 
 trait Lit[S] {
   def parse(s: S): S

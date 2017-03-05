@@ -1,7 +1,7 @@
 package arse.examples
 
 import scala.language.postfixOps
-import arse._
+import arse.ll._
 
 object Lisp {
   sealed trait Expr

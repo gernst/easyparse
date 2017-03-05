@@ -1,6 +1,6 @@
 package arse.bi
 
-import arse._
+import arse.ll._
 
 case class Opt[+A, S](p: Rel[A, S]) extends Rel[Option[A], S] {
   override def toString = "" + p + "?"

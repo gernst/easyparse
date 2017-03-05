@@ -1,5 +1,7 @@
 package arse
 
+import arse.ll._
+
 package object examples {
   import Recognizer._
 

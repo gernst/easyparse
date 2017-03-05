@@ -1,6 +1,6 @@
 package arse.bi
 
-import arse._
+import arse.ll._
 import Seq._
 
 // cannot use unapply, clashes with <~ and case class companions

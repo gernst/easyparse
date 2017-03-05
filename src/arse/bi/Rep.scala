@@ -1,6 +1,6 @@
 package arse.bi
 
-import arse._
+import arse.ll._
 
 case class Rep[+A, S](p: Rel[A, S], min: Int, max: Int = Int.MaxValue) extends Rel[List[A], S] {
   assert(0 <= min && min <= max)

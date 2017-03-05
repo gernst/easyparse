@@ -2,7 +2,7 @@ package arse.bi
 
 import scala.language.postfixOps
 
-import arse._
+import arse.ll._
 
 object Test {
   import Seq._

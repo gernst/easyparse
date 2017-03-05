@@ -1,6 +1,6 @@
 package arse.bi
 
-import arse._
+import arse.ll._
 
 trait Mixfix[Op, Expr, S] extends Rel[Expr, S] {
   import Mixfix.Min

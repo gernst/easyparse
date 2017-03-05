@@ -1,7 +1,7 @@
 package arse.ebnf
 
 import scala.language.postfixOps
-import arse._
+import arse.ll._
 
 object EBNF {
   import Parser._
