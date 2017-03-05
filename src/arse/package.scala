@@ -6,8 +6,8 @@ package object arse {
 
   trait Ops {
     def seal[T](p: Recognizer[T]): (T => T)
-    def seal[T, A](p: Parser[T, A]): (T => (T, A))
-    
+    def seal[T, A](p: Parser[T, A]): (T => (A, T))
+
     def rec[T](name: String, p: => Recognizer[T]): Recognizer[T]
     def accept[T]: Recognizer[T]
     def commit[T](p: Recognizer[T]): Recognizer[T]
