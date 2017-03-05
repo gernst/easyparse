@@ -7,14 +7,15 @@ package object arse {
 
   trait Seq
 
-  trait Recognizer[S] extends (S => S) {
+  trait Format {
     def format: String
     override def toString = format
   }
 
-  trait Parser[S, +A] extends (S => (A, S)) {
-    def format: String
-    override def toString = format
+  trait Recognizer[S] extends (S => S) with Format {
+  }
+
+  trait Parser[S, +A] extends (S => (A, S)) with Format {
   }
 
   def P[S, A](p: => Parser[S, A])(implicit name: sourcecode.Name): Parser[S, A] = {
@@ -164,6 +165,7 @@ package object arse {
       P(parser.Seq2(p1, p2, f))(name)
     }
   }
+
   implicit class ParseFunction3[A1, A2, A3, B](f: (A1, A2, A3) => B)(implicit name: sourcecode.Name) {
     def from[S](p1: Parser[S, A1], p2: Parser[S, A2], p3: Parser[S, A3]): Parser[S, B] = {
       P(parser.Seq3(p1, p2, p3, f))(name)

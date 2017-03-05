@@ -41,7 +41,7 @@ trait Mixfix[S, O, E] extends Parser[S, E] {
   def unary(op: O, arg: E) = {
     apply(op, List(arg))
   }
-  
+
   def binary(op: O, arg1: E, arg2: E) = {
     apply(op, List(arg1, arg2))
   }
@@ -101,29 +101,40 @@ object Mixfix {
   def Min = Int.MinValue
   def Max = Int.MaxValue
 
-  /*
-  def mixfix[T, O, E](p: => Parser[List[T], E], op: T => O, ap: (O, List[E]) => E, s: Syntax[T]): Parser[List[T], E] = new Mixfix[List[T], O, E]() {
+  def mixfix[T, O, E](p: => Parser[List[T], E], op: T => O, ap: (O, List[E]) => E, s: Syntax[T])(implicit name: sourcecode.Name): Parser[List[T], E] = new Mixfix[List[T], O, E]() {
     lazy val inner_expr = p
     def apply(op: O, args: List[E]) = ap(op, args)
 
     val prefix_op = mixfix_op((t: T) => s.prefix_ops.get(t), op)
     val postfix_op = mixfix_op((t: T) => s.postfix_ops.get(t), op)
     val infix_op = mixfix_op((t: T) => s.infix_ops.get(t), op)
+
+    def format = name.value
   }
 
-  def mixfix_op[T, O, A](m: T => Option[A], op: T => O): Parser[List[T], (O, A)] = parse {
-    case t :: s => m(t) match {
-      case Some(a) => ((op(t), a), s)
-      case None => fail
+  def mixfix_op[T, O, A](m: T => Option[A], op: T => O) = new Parser[List[T], (O, A)]() {
+    def apply(s: List[T]) = s match {
+      case t :: s => m(t) match {
+        case Some(a) => ((op(t), a), s)
+        case None => fail
+      }
+      case _ => fail
     }
-    case _ => fail
+    def format = {
+      "op"
+    }
   }
 
-  def mixfix_op_test[T, O, A](m: T => Boolean, op: T => O): Parser[List[T], O] = parse {
-    case t :: s => m(t) match {
-      case true => (op(t), s)
-      case false => fail
+  def mixfix_op_test[T, O, A](m: T => Boolean, op: T => O) = new Parser[List[T], O]() {
+    def apply(s: List[T]) = s match {
+      case t :: s => m(t) match {
+        case true => (op(t), s)
+        case false => fail
+      }
+      case _ => fail
     }
-    case _ => fail
-  } */
+    def format = {
+      "op"
+    }
+  }
 }
