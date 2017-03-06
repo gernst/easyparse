@@ -22,7 +22,7 @@ package object arse {
                       ap: (O, List[E]) => E,
                       s: Syntax[T],
                       min: Int = Int.MinValue,
-                      max: Int = Int.MaxValue)(implicit name: sourcecode.Name): Parser[List[T], E] = {
+                      max: Int = Int.MaxValue)(implicit name: sourcecode.Name) = {
     Mixfix[List[T], O, E](name.value, () => p, ap, s prefix_op op, s postfix_op op, s infix_op op, min, max)
   }
 

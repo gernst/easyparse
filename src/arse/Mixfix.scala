@@ -129,4 +129,9 @@ case class Mixfix[S, O, E](name: String,
   def apply(s: S) = {
     mixfix_app(min, s)
   }
+  
+  def above(lower: Int) = new Parser[S, E]() {
+    def format = name
+    def apply(s: S) = mixfix_app(lower, s)
+  }
 }
