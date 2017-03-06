@@ -4,7 +4,7 @@
 
 package object arse {
   def parens(str: String) = "(" + str + ")"
-  
+
   implicit def toRecognizer[T](t: T): Recognizer[List[T]] = recognizer.Lit(t)
   implicit def toBaseRecognizer[T](t: T): BaseRecognizer[List[T]] = new BaseRecognizer(t)
 
@@ -16,6 +16,15 @@ package object arse {
 
   def lit[T, A](p: Recognizer[List[T]], a: A) = p map a
   def ret[S, A](a: A) = parser.Ret[S, A](a)
+
+  def mixfix[T, O, E](p: => Parser[List[T], E],
+                      op: T => O,
+                      ap: (O, List[E]) => E,
+                      s: Syntax[T],
+                      min: Int = Int.MinValue,
+                      max: Int = Int.MaxValue)(implicit name: sourcecode.Name): Parser[List[T], E] = {
+    Mixfix[List[T], O, E](name.value, () => p, ap, s prefix_op op, s postfix_op op, s infix_op op, min, max)
+  }
 
   trait Seq
 
@@ -30,12 +39,16 @@ package object arse {
   trait Parser[S, +A] extends (S => (A, S)) with Format {
   }
 
+  def mangle(s: String) = {
+    s.replace('_', ' ').trim
+  }
+
   def P[S, A](p: => Parser[S, A])(implicit name: sourcecode.Name): Parser[S, A] = {
-    parser.Rec(name.value, () => p)
+    parser.Rec(mangle(name.value), () => p)
   }
 
   def R[S](p: => Recognizer[S])(implicit name: sourcecode.Name): Recognizer[S] = {
-    recognizer.Rec(name.value, () => p)
+    recognizer.Rec(mangle(name.value), () => p)
   }
 
   implicit class BaseRecognizer[S](p: Recognizer[S]) {
@@ -50,7 +63,7 @@ package object arse {
     def ~[A](q: Parser[S, A]): Parser[S, A] = {
       parser.SeqP(p, q)
     }
-    
+
     def ~!(q: Recognizer[S]): Recognizer[S] = {
       recognizer.Seq(p, !q)
     }
@@ -88,7 +101,7 @@ package object arse {
     def unary_! = {
       parser.Commit(p)
     }
-    
+
     def unary_? = {
       recognizer.Drop(p)
     }

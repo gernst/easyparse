@@ -16,8 +16,11 @@ object control {
   }
 
   case class Abort[I](msg: String, in: I) extends Exception {
-    override def toString = {
-      msg + " at '" + in + "'"
+    override def toString = in match {
+      case in: Iterable[_] =>
+        msg + " at '" + in.mkString(" ") + "'"
+      case _ =>
+        msg + " at '" + in + "'"
     }
   }
 
