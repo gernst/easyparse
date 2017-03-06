@@ -22,6 +22,16 @@ object parser {
     }
   }
 
+  case class Tok[T]() extends Parser[List[T], T] {
+    def apply(s: List[T]) = s match {
+      case t :: s => (t, s)
+      case _ => fail
+    }
+    def format = {
+      "."
+    }
+  }
+
   case class Ret[S, A](a: A) extends Parser[S, A] {
     def apply(s: S) = {
       (a, s)
@@ -33,7 +43,7 @@ object parser {
 
   case class Commit[S, A](p: Parser[S, A]) extends Parser[S, A] {
     def apply(s: S) = {
-      p(s) or abort(p.toString + " failed", s)
+      p(s) or abort("expected " + p.format, s)
     }
     def format = {
       p.format
@@ -138,7 +148,7 @@ object parser {
     }
   }
 
-  case class Seq3[S, A1, A2, A3, B](p1: Parser[S, A1], p2: Parser[S, A2], p3: Parser[S,A3], f: (A1, A2, A3) => B) extends Parser[S, B] with arse.Seq {
+  case class Seq3[S, A1, A2, A3, B](p1: Parser[S, A1], p2: Parser[S, A2], p3: Parser[S, A3], f: (A1, A2, A3) => B) extends Parser[S, B] with arse.Seq {
     def apply(s0: S) = {
       val (a1, s1) = p1(s0)
       val (a2, s2) = p2(s1)
@@ -150,7 +160,7 @@ object parser {
     }
   }
 
-  case class Seq4[S, A1, A2, A3, A4, B](p1: Parser[S, A1], p2: Parser[S, A2], p3: Parser[S,A3], p4: Parser[S,A4], f: (A1, A2, A3, A4) => B) extends Parser[S, B] with arse.Seq {
+  case class Seq4[S, A1, A2, A3, A4, B](p1: Parser[S, A1], p2: Parser[S, A2], p3: Parser[S, A3], p4: Parser[S, A4], f: (A1, A2, A3, A4) => B) extends Parser[S, B] with arse.Seq {
     def apply(s0: S) = {
       val (a1, s1) = p1(s0)
       val (a2, s2) = p2(s1)
