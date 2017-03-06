@@ -8,14 +8,6 @@ Author: Gidon Ernst <gidonernst@gmail.com>
 
 Feedback is welcome! I'd appreciate to hear whether anyone found this library useful.
 
-**Note:** this library underwent lots of refactoring and cleanups recently.
-Refer to branch [v0](https://github.com/gernst/arse/tree/v0) for further infos
-and documentation.
-
-**Hot:** Bidirectional parsing and printing in package
-[`arse.bi`](https://github.com/gernst/arse/tree/master/src/arse/bi)
-(no documentation yet). See `Test.scala` for an example.
-
 Motivation & Overview
 ---------------------
 
@@ -38,7 +30,7 @@ language. The main idea is that, given a parser for the arguments of a case
 class constructor, the parser for the case class is instantiated automatically.
 With *arse* you can specify this as follows:
 
-    val expr: Parser[String, Expr] = Parser.rec(top)
+    val expr: Parser[String, Expr] = P(top)
     val id = Id.from(string)
     val app = "(" ~ App.from(expr *) ~ ")"
     val top = app | id
@@ -66,6 +58,14 @@ As an example, the choice combinator roughly corresponds to
 
 where `or` executes its right argument only iff its left arguments throws a
 `Backtrack`.
+
+Defning a parser `p` as
+
+    val p = P(...)`
+
+has two effects: the argument to `P` is evaluated lazily to support recursion
+and `p` implicitly receives the string "p" as its name
+(see <https://github.com/lihaoyi/sourcecode>).
 
 Mixfix Operator Parsing
 -----------------------
