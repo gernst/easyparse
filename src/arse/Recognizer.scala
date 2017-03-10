@@ -37,7 +37,7 @@ object recognizer {
     }
   }
 
-  case class Drop[S, A](p: Parser[S, A]) extends Recognizer[S] {
+  case class Drop[S, +A](p: Parser[S, A]) extends Recognizer[S] {
     def apply(s0: S) = {
       val (_, s1) = p(s0)
       s1

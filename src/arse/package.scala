@@ -6,7 +6,6 @@ package object arse {
   def parens(str: String) = "(" + str + ")"
 
   implicit def toRecognizer[T](t: T): Recognizer[List[T]] = recognizer.Lit(t)
-  implicit def toBaseRecognizer[T](t: T): BaseRecognizer[List[T]] = new BaseRecognizer(t)
 
   def string: Parser[List[String], String] = parser.Tok()
 
@@ -18,11 +17,11 @@ package object arse {
   def ret[S, A](a: A) = parser.Ret[S, A](a)
 
   def mixfix[T, O, E](p: => Parser[List[T], E],
-                      op: T => O,
-                      ap: (O, List[E]) => E,
-                      s: Syntax[T],
-                      min: Int = Int.MinValue,
-                      max: Int = Int.MaxValue)(implicit name: sourcecode.Name) = {
+    op: T => O,
+    ap: (O, List[E]) => E,
+    s: Syntax[T],
+    min: Int = Int.MinValue,
+    max: Int = Int.MaxValue)(implicit name: sourcecode.Name) = {
     Mixfix[List[T], O, E](name.value, () => p, ap, s prefix_op op, s postfix_op op, s infix_op op, min, max)
   }
 
@@ -31,12 +30,6 @@ package object arse {
   trait Format {
     def format: String
     override def toString = format
-  }
-
-  trait Recognizer[S] extends (S => S) with Format {
-  }
-
-  trait Parser[S, +A] extends (S => (A, S)) with Format {
   }
 
   def mangle(s: String) = {
@@ -51,7 +44,9 @@ package object arse {
     recognizer.Rec(mangle(name.value), () => p)
   }
 
-  implicit class BaseRecognizer[S](p: Recognizer[S]) {
+  trait Recognizer[S] extends (S => S) with Format {
+    p =>
+
     def unary_! = {
       recognizer.Commit(p)
     }
@@ -97,7 +92,9 @@ package object arse {
     }
   }
 
-  implicit class BaseParser[S, A](p: Parser[S, A]) {
+  trait Parser[S, +A] extends (S => (A, S)) with Format {
+    p =>
+    // implicit class BaseParser[S, A](p: Parser[S, A]) {
     def unary_! = {
       parser.Commit(p)
     }
@@ -110,7 +107,7 @@ package object arse {
       parser.SeqR(p, q)
     }
 
-    def ~[B](q: Parser[S, B]): Parser[S, (A, B)] = {
+    def ~[B](q: Parser[S, B]): Parser[S, A ~ B] = {
       parser.Seq(p, q)
     }
 
@@ -118,7 +115,7 @@ package object arse {
       parser.SeqR(p, !q)
     }
 
-    def ~![B](q: Parser[S, B]): Parser[S, (A, B)] = {
+    def ~![B](q: Parser[S, B]): Parser[S, A ~ B] = {
       parser.Seq(p, !q)
     }
 
@@ -142,6 +139,10 @@ package object arse {
       p :: (sep ~ p).*
     }
 
+    def ~*(sep: Recognizer[S]): Parser[S, List[A]] = {
+      p :: (sep ~ p).*
+    }
+
     def map[B](f: A => B): Parser[S, B] = {
       parser.Map(p, f)
     }
@@ -158,6 +159,10 @@ package object arse {
       parser.Filter(p, (a: A) => !f(a))
     }
 
+    /* def flatMap[A <: A, B](q: A => Parser[S, B]) = {
+      parser.FlatMap(p, q)
+    } */
+
     def reduceLeft[B >: A](f: (B, A) => B): Parser[S, B] = {
       p.+ map (_ reduceLeft f)
     }
@@ -168,18 +173,24 @@ package object arse {
 
     def foldLeft[B](z: => Parser[S, B])(f: (B, A) => B): Parser[S, B] = {
       (z ~ p.*) map {
-        case (b, as) => as.foldLeft(b)(f)
+        case b ~ as => as.foldLeft(b)(f)
       }
     }
 
     def foldRight[B](z: => Parser[S, B])(f: (A, B) => B): Parser[S, B] = {
       (p.* ~ z) map {
-        case (as, b) => as.foldRight(b)(f)
+        case as ~ b => as.foldRight(b)(f)
       }
     }
   }
 
-  implicit class PairParser[S, A, B](p: Parser[S, (A, B)]) {
+  implicit class Parser1[S, A](p: Parser[S, A]) {
+    def ^^[R](f: A => R) = {
+      p map { case a => f(a) }
+    }
+  }
+
+  implicit class Parser2[S, A, B](p: Parser[S, A ~ B]) {
     def _1(): Parser[S, A] = {
       p map (_._1)
     }
@@ -187,39 +198,31 @@ package object arse {
     def _2(): Parser[S, B] = {
       p map (_._2)
     }
+
+    def ^^[R](f: (A, B) => R) = {
+      p map { case a ~ b => f(a, b) }
+    }
+  }
+
+  implicit class Parser3[S, A, B, C](p: Parser[S, A ~ B ~ C]) {
+    def ^^[R](f: (A, B, C) => R) = {
+      p map { case a ~ b ~ c => f(a, b, c) }
+    }
+  }
+
+  implicit class Parser4[S, A, B, C, D](p: Parser[S, A ~ B ~ C ~ D]) {
+    def ^^[R](f: (A, B, C, D) => R) = {
+      p map { case a ~ b ~ c ~ d => f(a, b, c, d) }
+    }
   }
 
   implicit class ListParser[S, A](p: Parser[S, List[A]]) {
     def ::(q: Parser[S, A]): Parser[S, List[A]] = {
-      (q ~ p) map { case (a, as) => a :: as }
+      (q ~ p) map { case a ~ as => a :: as }
     }
 
     def ++(q: Parser[S, List[A]]): Parser[S, List[A]] = {
-      (p ~ q) map { case (as, bs) => as ++ bs }
-    }
-  }
-
-  implicit class ParseFunction1[A1, B](f: (A1) => B) {
-    def from[S](p1: Parser[S, A1]): Parser[S, B] = {
-      parser.Seq1(p1, f)
-    }
-  }
-
-  implicit class ParseFunction2[A1, A2, B](f: (A1, A2) => B) {
-    def from[S](p1: Parser[S, A1], p2: Parser[S, A2]): Parser[S, B] = {
-      parser.Seq2(p1, p2, f)
-    }
-  }
-
-  implicit class ParseFunction3[A1, A2, A3, B](f: (A1, A2, A3) => B) {
-    def from[S](p1: Parser[S, A1], p2: Parser[S, A2], p3: Parser[S, A3]): Parser[S, B] = {
-      parser.Seq3(p1, p2, p3, f)
-    }
-  }
-
-  implicit class ParseFunction4[A1, A2, A3, A4, B](f: (A1, A2, A3, A4) => B) {
-    def from[S](p1: Parser[S, A1], p2: Parser[S, A2], p3: Parser[S, A3], p4: Parser[S, A4]): Parser[S, B] = {
-      parser.Seq4(p1, p2, p3, p4, f)
+      (p ~ q) map { case as ~ bs => as ++ bs }
     }
   }
 }
