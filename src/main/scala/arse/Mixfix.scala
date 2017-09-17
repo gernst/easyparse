@@ -17,117 +17,100 @@ case class Prefix(prec: Int) extends Fixity
 case class Postfix(prec: Int) extends Fixity
 case class Infix(assoc: Assoc, prec: Int) extends Fixity
 
-trait Syntax[T] {
-  def prefix_ops: Map[T, Int]
-  def postfix_ops: Map[T, Int]
-  def infix_ops: Map[T, (Assoc, Int)]
+trait Syntax[Op] {
+  def prefix_ops: Map[Op, Int]
+  def postfix_ops: Map[Op, Int]
+  def infix_ops: Map[Op, (Assoc, Int)]
 
-  def contains(t: T) =
-    (prefix_ops contains t) ||
-      (postfix_ops contains t) ||
-      (infix_ops contains t)
+  def contains(op: Op) =
+    (prefix_ops contains op) ||
+      (postfix_ops contains op) ||
+      (infix_ops contains op)
 
-  def prefix_op[O](op: T => O) = mixfix_op((t: T) => prefix_ops.get(t), op)
-  def postfix_op[O](op: T => O) = mixfix_op((t: T) => postfix_ops.get(t), op)
-  def infix_op[O](op: T => O) = mixfix_op((t: T) => infix_ops.get(t), op)
-
-  def mixfix_op[T, O, A](m: T => Option[A], op: T => O) = new Parser[List[T], (O, A)]() {
-    def apply(s: List[T]) = s match {
-      case t :: s => m(t) match {
-        case Some(a) => ((op(t), a), s)
-        case None => fail
-      }
-      case _ => fail
-    }
-    def format = {
-      "op"
-    }
-  }
-
-  def mixfix_op_test[T, O, A](m: T => Boolean, op: T => O) = new Parser[List[T], O]() {
-    def apply(s: List[T]) = s match {
-      case t :: s => m(t) match {
-        case true => (op(t), s)
-        case false => fail
-      }
-      case _ => fail
-    }
-    def format = {
-      "op"
-    }
-  }
+  def prefix_op(op: Parser[Op]) = op.collect(prefix_ops.get _)
+  def postfix_op(op: Parser[Op]) = op.collect(postfix_ops.get _)
+  def infix_op(op: Parser[Op]) = op.collect(infix_ops.get _)
 }
 
-case class Mixfix[S, O, E](name: String,
-                           inner_expr: () => Parser[S, E],
-                           apply: (O, List[E]) => E,
-                           prefix_op: Parser[S, (O, Int)],
-                           postfix_op: Parser[S, (O, Int)],
-                           infix_op: Parser[S, (O, (Assoc, Int))],
-                           min: Int,
-                           max: Int)
-    extends Parser[S, E] {
+case class Mixfix[Op, Expr](name: String,
+  inner_expr: () => Parser[Expr],
+  apply: (Op, List[Expr]) => Expr,
+  prefix_op: Parser[(Op, Int)],
+  postfix_op: Parser[(Op, Int)],
+  infix_op: Parser[(Op, (Assoc, Int))],
+  min: Int,
+  max: Int)
+    extends Parser[Expr] {
 
   def nprec(assoc: Assoc, prec: Int) = if (assoc == Left) prec else prec - 1
   def rprec(assoc: Assoc, prec: Int) = if (assoc == Right) prec else prec + 1
 
-  def unary(op: O, arg: E) = {
+  def unary(op: Op, arg: Expr) = {
     apply(op, List(arg))
   }
 
-  def binary(op: O, arg1: E, arg2: E) = {
+  def binary(op: Op, arg1: Expr, arg2: Expr) = {
     apply(op, List(arg1, arg2))
   }
 
-  def prefix_app(lower: Int, s0: S) = {
-    val ((op, prec), s1) = prefix_op(s0)
+  def prefix_app(lower: Int, in: Input) = {
+    val (op, prec) = prefix_op(in)
     if (prec < lower) fail
-    val (right, s2) = mixfix_app(prec, s1)
-    (unary(op, right), s2)
+    val right = mixfix_app(prec, in)
+    unary(op, right)
   }
 
-  def postfix_app(lower: Int, upper: Int, left: E, s0: S) = {
-    val ((op, prec), s1) = postfix_op(s0)
+  def postfix_app(lower: Int, upper: Int, left: Expr, in: Input) = {
+    val (op, prec) = postfix_op(in)
     if (prec < lower || upper < prec) fail
-    postinfix_app(lower, prec, unary(op, left), s1)
+    postinfix_app(lower, prec, unary(op, left), in)
   }
 
-  def infix_app(lower: Int, upper: Int, left: E, s0: S) = {
-    val ((op, (assoc, prec)), s1) = infix_op(s0)
+  def infix_app(lower: Int, upper: Int, left: Expr, in: Input) = {
+    val (op, (assoc, prec)) = infix_op(in)
     if (prec < lower || upper < prec) fail
-    val (right, s2) = mixfix_app(rprec(assoc, prec), s1)
-    postinfix_app(lower, nprec(assoc, prec), binary(op, left, right), s2)
+    val right = mixfix_app(rprec(assoc, prec), in)
+    postinfix_app(lower, nprec(assoc, prec), binary(op, left, right), in)
   }
 
-  def postinfix_app(lower: Int, upper: Int, left: E, s: S): (E, S) = {
+  def postinfix_app(lower: Int, upper: Int, left: Expr, in: Input): Expr = {
+    val backtrack = in.position
+
     {
-      infix_app(lower, upper, left, s)
+      in.position = backtrack
+      infix_app(lower, upper, left, in)
     } or {
-      postfix_app(lower, upper, left, s)
+      in.position = backtrack
+      postfix_app(lower, upper, left, in)
     } or {
-      (left, s)
+      in.position = backtrack;
+      left
     }
   }
 
-  def mixfix_arg(lower: Int, s: S) = {
+  def mixfix_arg(lower: Int, in: Input) = {
+    val backtrack = in.position
+
     {
-      prefix_app(lower, s)
+      in.position = backtrack
+      prefix_app(lower, in)
     } or {
-      inner_expr()(s)
+      in.position = backtrack
+      inner_expr()(in)
     }
   }
 
-  def mixfix_app(lower: Int, s0: S): (E, S) = {
-    val (left, s1) = mixfix_arg(lower, s0)
-    postinfix_app(lower, max, left, s1)
+  def mixfix_app(lower: Int, in: Input): Expr = {
+    val left = mixfix_arg(lower, in)
+    postinfix_app(lower, max, left, in)
   }
 
-  def apply(s: S) = {
-    mixfix_app(min, s)
+  def apply(in: Input) = {
+    mixfix_app(min, in)
   }
-  
-  def above(lower: Int) = new Parser[S, E]() {
+
+  def above(lower: Int) = new Parser[Expr]() {
     def format = name
-    def apply(s: S) = mixfix_app(lower, s)
+    def apply(in: Input) = mixfix_app(lower, in)
   }
 }

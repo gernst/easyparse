@@ -119,3 +119,17 @@ If you need speed, try a LALR parser generator instead, such as
 [beaver](http://beaver.sourceforge.net).
 
 No scanner functionality is provided. [jFlex](http://jflex.de) is really nice.
+
+TODOs
+-----
+
+- string based API with regular expression scanning and explicit whitespace
+- transparently hook parse trees into the generation of semantic values
+    
+    def parse: Tree[A]
+    def apply = parse.get
+ 
+- line and position tracking
+- mixfix pretty printer
+- strict parsers p! where failure leads to an error in the surrounding alternation
+- make the input implicit (dynamic variable?)
