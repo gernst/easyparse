@@ -25,13 +25,6 @@ package object arse {
     Mixfix[List[T], O, E](name.value, () => p, ap, s prefix_op op, s postfix_op op, s infix_op op, min, max)
   }
 
-  trait Seq
-
-  trait Format {
-    def format: String
-    override def toString = format
-  }
-
   def mangle(s: String) = {
     s.replace('_', ' ').trim
   }
@@ -44,7 +37,7 @@ package object arse {
     recognizer.Rec(mangle(name.value), () => p)
   }
 
-  trait Recognizer[S] extends (S => S) with Format {
+  trait Recognizer[S] extends (S => S) {
     p =>
 
     def unary_! = {
@@ -92,7 +85,7 @@ package object arse {
     }
   }
 
-  trait Parser[S, +A] extends (S => (A, S)) with Format {
+  trait Parser[S, +A] extends (S => (A, S)) {
     p =>
     // implicit class BaseParser[S, A](p: Parser[S, A]) {
     def unary_! = {
