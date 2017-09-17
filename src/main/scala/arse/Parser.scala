@@ -4,14 +4,6 @@
 
 package arse
 
-case class ~[+A, +B](_1: A, _2: B)
-
-object ~ {
-  def unapply[A, B](p: (A, B)): Option[(A, B)] = {
-    Some(p)
-  }
-}
-
 object parser {
   import control._
 

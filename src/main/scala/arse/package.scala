@@ -3,7 +3,8 @@
 // This code is licensed under MIT license (see LICENSE for details)
 
 package object arse {
-  def parens(str: String) = "(" + str + ")"
+  type ~[+A, +B] = Tuple2[A, B]
+  val ~ = Tuple2
 
   implicit def toRecognizer[T](t: T): Recognizer[List[T]] = recognizer.Lit(t)
 
@@ -25,16 +26,16 @@ package object arse {
     Mixfix[List[T], O, E](name.value, () => p, ap, s prefix_op op, s postfix_op op, s infix_op op, min, max)
   }
 
-  def mangle(s: String) = {
-    s.replace('_', ' ').trim
-  }
-
   def P[S, A](p: => Parser[S, A])(implicit name: sourcecode.Name): Parser[S, A] = {
-    parser.Rec(mangle(name.value), () => p)
+    parser.Rec(name.value, () => p)
   }
 
   def R[S](p: => Recognizer[S])(implicit name: sourcecode.Name): Recognizer[S] = {
-    recognizer.Rec(mangle(name.value), () => p)
+    recognizer.Rec(name.value, () => p)
+  }
+
+  trait Whitespace[S] extends (S => S) {
+    p =>
   }
 
   trait Recognizer[S] extends (S => S) {
@@ -87,7 +88,7 @@ package object arse {
 
   trait Parser[S, +A] extends (S => (A, S)) {
     p =>
-    // implicit class BaseParser[S, A](p: Parser[S, A]) {
+
     def unary_! = {
       parser.Commit(p)
     }

@@ -71,10 +71,6 @@ case class Mixfix[S, O, E](name: String,
   def nprec(assoc: Assoc, prec: Int) = if (assoc == Left) prec else prec - 1
   def rprec(assoc: Assoc, prec: Int) = if (assoc == Right) prec else prec + 1
 
-  def format = {
-    name
-  }
-
   def unary(op: O, arg: E) = {
     apply(op, List(arg))
   }
