@@ -5,6 +5,7 @@
 package arse
 
 import control._
+import java.util.regex.Pattern
 
 object recognizer {
   case class Rec(name: String, p: () => Recognizer) extends Recognizer {
@@ -13,10 +14,25 @@ object recognizer {
     }
   }
 
+  case class Regex(pattern: String) extends Recognizer {
+    val regex = Pattern.compile(pattern)
+    val matcher = regex.matcher("")
+
+    def apply(in: Input) = {
+      matcher.reset(in.text)
+
+      if (matcher.find(in.position)) {
+        in advanceTo matcher.end
+      } else {
+        fail(in)
+      }
+    }
+  }
+
   case class Lit(token: String) extends Recognizer {
     def apply(in: Input) = {
       if (in.text.startsWith(token, in.position)) {
-        in.position += token.length
+        in advanceBy token.length
       } else {
         fail(in)
       }
@@ -60,34 +76,23 @@ object recognizer {
 
       {
         in.position = back
+        in.commit = false
         p(in)
       } or {
         in.position = back
+        in.commit = false
         q(in)
       } rollback {
         in.position = back
-      }
-    }
-  }
-
-  case class Look(p: Recognizer) extends Recognizer {
-    def apply(in: Input) = {
-      val back = in.position
-
-      {
-        p(in)
-      } rollback {
-        in.position = back
-        backtrack()
+        in.commit = true
       }
     }
   }
 
   case class Rep(p: Recognizer) extends Recognizer {
-    val q = p.look
-
     def apply(in: Input) = {
-      q(in)
+      in.commit = false
+      p(in)
       this(in)
     } or {
     }

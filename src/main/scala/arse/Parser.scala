@@ -11,7 +11,11 @@ import control._
 object parser {
   case class Rec[A](name: String, p: () => Parser[A]) extends Parser[A] {
     def apply(in: Input) = {
-      p()(in)
+      {
+        p()(in)
+      } rollback {
+        println("parser " + name + " failed at '" + in.rest + "'")
+      }
     }
   }
 
@@ -29,7 +33,7 @@ object parser {
       matcher.reset(in.text)
 
       if (matcher.find(in.position)) {
-        in.position = matcher.end()
+        in advanceTo matcher.end
         matcher.group()
       } else {
         fail(in)
@@ -45,40 +49,30 @@ object parser {
     }
   }
 
-  case class Look[+A](p: Parser[A]) extends Parser[A] {
-    def apply(in: Input) = {
-      val back = in.position
-
-      {
-        p(in)
-      } rollback {
-        in.position = back
-        backtrack()
-      }
-    }
-  }
-
   case class Or[+A](p: Parser[A], q: Parser[A]) extends Parser[A] {
     def apply(in: Input) = {
       val back = in.position
 
       {
         in.position = back
+        in.commit = false
         p(in)
       } or {
         in.position = back
+        in.commit = false
         q(in)
       } rollback {
         in.position = back
+        in.commit = false
       }
     }
   }
 
   case class Rep[+A](p: Parser[A]) extends Parser[List[A]] {
-    val q = p.look
-
     def apply(in: Input) = {
-      val a = q(in)
+      // TODO: code this in a loop
+      in.commit = false
+      val a = p(in)
       val as = this(in)
       a :: as
     } or {
@@ -117,7 +111,7 @@ object parser {
   case class SeqR[+A](p: Parser[A], q: Recognizer) extends Parser[A] {
     def apply(in: Input) = {
       val a = p(in)
-      val b = q(in)
+      q(in)
       a
     }
   }

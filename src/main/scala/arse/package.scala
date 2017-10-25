@@ -3,6 +3,7 @@
 // This code is licensed under MIT license (see LICENSE for details)
 
 import scala.language.implicitConversions
+import java.util.regex.Pattern
 
 package object arse {
   import control._
@@ -11,16 +12,33 @@ package object arse {
   val ~ = Tuple2
   val $ = recognizer.EOF
 
-  class Input(val text: String, var position: Int) {
+  case class Whitespace(pattern: String) {
+    val regex = Pattern.compile(pattern)
+    val matcher = regex.matcher("")
+  }
+
+  class Input(val text: String, var position: Int, var commit: Boolean, val whitespace: Whitespace) {
     def length = text.length - position
     def rest = text drop position
     def isEmpty = (length == 0)
-    def from(offset: Int) = new Input(text, position + offset)
+
+    def advanceBy(offset: Int) {
+      advanceTo(position + offset)
+    }
+
+    def advanceTo(next: Int) {
+      whitespace.matcher.reset(text)
+      whitespace.matcher.find(next)
+      position = whitespace.matcher.end
+      commit = true
+    }
   }
 
   case class Failure(message: String, in: Input, cause: Throwable = null) extends Exception(message, cause) with NoStackTrace
 
-  implicit def input(text: String) = new Input(text, 0)
+  implicit def input(text: String)(implicit w: Whitespace) = {
+    new Input(text, 0, true, w)
+  }
 
   val accept = recognizer.Accept
   def ret[A](a: A) = parser.Accept(a)
@@ -32,6 +50,10 @@ package object arse {
 
   def int = scan("[+-]?[0-9]+") map {
     str => str.toInt
+  }
+
+  def double = scan("[+-]?[0-9]+[.]?[0-9]*") map {
+    str => str.toDouble
   }
 
   def char = scan("\'([^\']|\\')\'") map {
@@ -62,22 +84,22 @@ package object arse {
     recognizer.Rec(name.value, () => p)
   }
 
-  trait Whitespace extends (Input => Unit) {
-    p =>
-  }
-
   trait Recognizer {
     p =>
 
     def apply(in: Input): Unit
 
     def fail(in: Input) = {
-      val message = p + " failed"
-      throw Failure(message, in)
+      if (in.commit) {
+        val message = p + " failed"
+        throw Failure(message, in)
+      } else {
+        throw Backtrack
+      }
     }
 
-    def look: Recognizer = {
-      recognizer.Look(p)
+    def ?(): Recognizer = {
+      p | recognizer.Accept
     }
 
     def ~(q: Recognizer): Recognizer = {
@@ -89,11 +111,11 @@ package object arse {
     }
 
     def ?~(q: Recognizer): Recognizer = {
-      recognizer.Seq(p.look, q)
+      recognizer.Seq(p.?, q)
     }
 
     def ?~[A](q: Parser[A]): Parser[A] = {
-      parser.SeqP(p.look, q)
+      parser.SeqP(p.?, q)
     }
 
     def |(q: Recognizer): Recognizer = {
@@ -106,10 +128,6 @@ package object arse {
 
     def +(): Recognizer = {
       p ~ p.*
-    }
-
-    def ?(): Recognizer = {
-      p | recognizer.Accept
     }
 
     def rep(sep: Recognizer): Recognizer = {
@@ -127,12 +145,12 @@ package object arse {
     def apply(in: Input): A
 
     def fail(in: Input, cause: Throwable = null) = {
-      val message = p + " failed"
-      throw Failure(message, in, cause)
-    }
-
-    def look: Parser[A] = {
-      parser.Look(p)
+      if (in.commit) {
+        val message = p + " failed"
+        throw Failure(message, in, cause)
+      } else {
+        throw Backtrack
+      }
     }
 
     def ~(q: Recognizer): Parser[A] = {

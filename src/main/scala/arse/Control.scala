@@ -17,8 +17,6 @@ object control {
     override def toString = "backtrack"
   }
 
-  def backtrack() = throw Backtrack
-
   implicit class Control[A](first: => A) {
     def or[B <: A](second: => B) = {
       try {
@@ -36,15 +34,6 @@ object control {
       case e: Throwable =>
         second
         throw e
-      }
-    }
-
-    def mask[E <: Throwable](implicit ev: ClassTag[E]) = {
-      try {
-        first
-      } catch {
-        case _: E =>
-          backtrack()
       }
     }
   }
