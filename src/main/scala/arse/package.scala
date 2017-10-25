@@ -12,9 +12,30 @@ package object arse {
   val ~ = Tuple2
   val $ = recognizer.EOF
 
-  case class Whitespace(pattern: String) {
+  trait WithPattern {
+    def pattern: String
+
     val regex = Pattern.compile(pattern)
     val matcher = regex.matcher("")
+
+    def matches(text: String, pos: Int) = {
+      matcher.reset(text)
+      matcher.region(pos, text.length)
+      // print("match " + pattern + " at '" + text.substring(pos) + "' ")
+
+      if (matcher.lookingAt()) {
+        val end = matcher.end
+        // println()
+        // println("remaining input '" + text.substring(end) + "'")
+        Some(end)
+      } else {
+        // println("failed")
+        None
+      }
+    }
+  }
+
+  case class Whitespace(pattern: String) extends WithPattern {
   }
 
   class Input(val text: String, var position: Int, var commit: Boolean, val whitespace: Whitespace) {
@@ -27,9 +48,12 @@ package object arse {
     }
 
     def advanceTo(next: Int) {
-      whitespace.matcher.reset(text)
-      whitespace.matcher.find(next)
-      position = whitespace.matcher.end
+      whitespace.matches(text, next) match {
+        case Some(next) =>
+          position = whitespace.matcher.end
+        case None =>
+          position = next
+      }
       commit = true
     }
   }
@@ -147,6 +171,7 @@ package object arse {
     def fail(in: Input, cause: Throwable = null) = {
       if (in.commit) {
         val message = p + " failed"
+        println("in fail: " + message + " at '" + in.rest + "'")
         throw Failure(message, in, cause)
       } else {
         throw Backtrack

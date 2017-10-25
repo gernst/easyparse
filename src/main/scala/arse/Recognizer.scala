@@ -14,17 +14,13 @@ object recognizer {
     }
   }
 
-  case class Regex(pattern: String) extends Recognizer {
-    val regex = Pattern.compile(pattern)
-    val matcher = regex.matcher("")
-
+  case class Regex(pattern: String) extends Recognizer with WithPattern {
     def apply(in: Input) = {
-      matcher.reset(in.text)
-
-      if (matcher.find(in.position)) {
-        in advanceTo matcher.end
-      } else {
-        fail(in)
+      matches(in.text, in.position) match {
+        case Some(next) =>
+          in advanceTo matcher.end
+        case None =>
+          fail(in)
       }
     }
   }

@@ -11,11 +11,7 @@ import control._
 object parser {
   case class Rec[A](name: String, p: () => Parser[A]) extends Parser[A] {
     def apply(in: Input) = {
-      {
-        p()(in)
-      } rollback {
-        println("parser " + name + " failed at '" + in.rest + "'")
-      }
+      p()(in)
     }
   }
 
@@ -25,18 +21,14 @@ object parser {
     }
   }
 
-  case class Regex(pattern: String) extends Parser[String] {
-    val regex = Pattern.compile(pattern)
-    val matcher = regex.matcher("")
-
+  case class Regex(pattern: String) extends Parser[String] with WithPattern {
     def apply(in: Input) = {
-      matcher.reset(in.text)
-
-      if (matcher.find(in.position)) {
-        in advanceTo matcher.end
-        matcher.group()
-      } else {
-        fail(in)
+      matches(in.text, in.position) match {
+        case Some(next) =>
+          in advanceTo next
+          matcher.group()
+        case None =>
+          fail(in)
       }
     }
   }
