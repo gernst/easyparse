@@ -27,9 +27,9 @@ trait Syntax[Op] {
       (postfix_ops contains op) ||
       (infix_ops contains op)
 
-  def prefix_op(op: Parser[Op]) = op.collect(prefix_ops.get _)
-  def postfix_op(op: Parser[Op]) = op.collect(postfix_ops.get _)
-  def infix_op(op: Parser[Op]) = op.collect(infix_ops.get _)
+  def prefix_op(op: Parser[Op]) = op map prefix_ops
+  def postfix_op(op: Parser[Op]) = op map postfix_ops
+  def infix_op(op: Parser[Op]) = op map infix_ops
 }
 
 case class Mixfix[Op, Expr](name: String,
@@ -55,47 +55,47 @@ case class Mixfix[Op, Expr](name: String,
 
   def prefix_app(lower: Int, in: Input) = {
     val (op, prec) = prefix_op(in)
-    if (prec < lower) fail
+    if (prec < lower) backtrack()
     val right = mixfix_app(prec, in)
     unary(op, right)
   }
 
   def postfix_app(lower: Int, upper: Int, left: Expr, in: Input) = {
     val (op, prec) = postfix_op(in)
-    if (prec < lower || upper < prec) fail
+    if (prec < lower || upper < prec) backtrack()
     postinfix_app(lower, prec, unary(op, left), in)
   }
 
   def infix_app(lower: Int, upper: Int, left: Expr, in: Input) = {
     val (op, (assoc, prec)) = infix_op(in)
-    if (prec < lower || upper < prec) fail
+    if (prec < lower || upper < prec) backtrack()
     val right = mixfix_app(rprec(assoc, prec), in)
     postinfix_app(lower, nprec(assoc, prec), binary(op, left, right), in)
   }
 
   def postinfix_app(lower: Int, upper: Int, left: Expr, in: Input): Expr = {
-    val backtrack = in.position
+    val back = in.position
 
     {
-      in.position = backtrack
+      in.position = back
       infix_app(lower, upper, left, in)
     } or {
-      in.position = backtrack
+      in.position = back
       postfix_app(lower, upper, left, in)
     } or {
-      in.position = backtrack;
+      in.position = back;
       left
     }
   }
 
   def mixfix_arg(lower: Int, in: Input) = {
-    val backtrack = in.position
+    val back = in.position
 
     {
-      in.position = backtrack
+      in.position = back
       prefix_app(lower, in)
     } or {
-      in.position = backtrack
+      in.position = back
       inner_expr()(in)
     }
   }

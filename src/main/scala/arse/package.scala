@@ -2,27 +2,36 @@
 // (c) 2016 Gidon Ernst <gidonernst@gmail.com>
 // This code is licensed under MIT license (see LICENSE for details)
 
+import scala.language.implicitConversions
+
 package object arse {
+  import control._
+
   type ~[+A, +B] = Tuple2[A, B]
   val ~ = Tuple2
+  val $ = recognizer.EOF
 
   class Input(val text: String, var position: Int) {
     def length = text.length - position
+    def rest = text drop position
     def isEmpty = (length == 0)
+    def from(offset: Int) = new Input(text, position + offset)
   }
+
+  case class Failure(message: String, in: Input, cause: Throwable = null) extends Exception(message, cause) with NoStackTrace
+
+  implicit def input(text: String) = new Input(text, 0)
 
   val accept = recognizer.Accept
   def ret[A](a: A) = parser.Accept(a)
 
-  implicit def lit(text: String) = recognizer.Lit(text)
-  def lit[A](text: String, a: A) = recognizer.Lit(text) map a
+  implicit def lit(text: String): Recognizer = recognizer.Lit(text)
+  def lit[A](text: String, a: A): Parser[A] = recognizer.Lit(text) map a
 
-  def scan(pattern: String) = parser.Regex(pattern)
+  def scan(pattern: String): Parser[String] = parser.Regex(pattern)
 
   def int = scan("[+-]?[0-9]+") map {
-    str =>
-      import control._
-      str.toInt.mask[NumberFormatException]
+    str => str.toInt
   }
 
   def char = scan("\'([^\']|\\')\'") map {
@@ -35,20 +44,21 @@ package object arse {
       str.substring(1, str.length - 1)
   }
 
-  /*def mixfix[O, E](p: => Parser[S,E],
-    op: T => O,
+  def mixfix[O, E](p: => Parser[E],
+    op: String => O,
     ap: (O, List[E]) => E,
-    s: Syntax[T],
+    s: Syntax[O],
     min: Int = Int.MinValue,
     max: Int = Int.MaxValue)(implicit name: sourcecode.Name) = {
-    Mixfix[List[T], O, E](name.value, () => p, ap, s prefix_op op, s postfix_op op, s infix_op op, min, max)
-  }*/
+    ???
+    //Mixfix[List[T], O, E](name.value, () => p, ap, s prefix_op op, s postfix_op op, s infix_op op, min, max)
+  }
 
   def P[A](p: => Parser[A])(implicit name: sourcecode.Name): Parser[A] = {
     parser.Rec(name.value, () => p)
   }
 
-  def R(p: => Recognizer)(implicit name: sourcecode.Name): Recognizer = {
+  def P(p: => Recognizer)(implicit name: sourcecode.Name): Recognizer = {
     recognizer.Rec(name.value, () => p)
   }
 
@@ -56,11 +66,18 @@ package object arse {
     p =>
   }
 
-  trait Recognizer extends (Input => Unit) {
+  trait Recognizer {
     p =>
 
-    def unary_! = {
-      recognizer.Commit(p)
+    def apply(in: Input): Unit
+
+    def fail(in: Input) = {
+      val message = p + " failed"
+      throw Failure(message, in)
+    }
+
+    def look: Recognizer = {
+      recognizer.Look(p)
     }
 
     def ~(q: Recognizer): Recognizer = {
@@ -71,12 +88,12 @@ package object arse {
       parser.SeqP(p, q)
     }
 
-    def ~!(q: Recognizer): Recognizer = {
-      recognizer.Seq(p, !q)
+    def ?~(q: Recognizer): Recognizer = {
+      recognizer.Seq(p.look, q)
     }
 
-    def ~![A](q: Parser[A]): Parser[A] = {
-      parser.SeqP(p, !q)
+    def ?~[A](q: Parser[A]): Parser[A] = {
+      parser.SeqP(p.look, q)
     }
 
     def |(q: Recognizer): Recognizer = {
@@ -104,15 +121,18 @@ package object arse {
     }
   }
 
-  trait Parser[+A] extends (Input => A) {
+  trait Parser[+A] {
     p =>
 
-    def unary_! = {
-      parser.Commit(p)
+    def apply(in: Input): A
+
+    def fail(in: Input, cause: Throwable = null) = {
+      val message = p + " failed"
+      throw Failure(message, in, cause)
     }
 
-    def unary_? = {
-      recognizer.Drop(p)
+    def look: Parser[A] = {
+      parser.Look(p)
     }
 
     def ~(q: Recognizer): Parser[A] = {
@@ -121,14 +141,6 @@ package object arse {
 
     def ~[B](q: Parser[B]): Parser[A ~ B] = {
       parser.Seq(p, q)
-    }
-
-    def ~!(q: Recognizer): Parser[A] = {
-      parser.SeqR(p, !q)
-    }
-
-    def ~![B](q: Parser[B]): Parser[A ~ B] = {
-      parser.Seq(p, !q)
     }
 
     def |[B >: A](q: Parser[B]): Parser[B] = {
@@ -159,20 +171,12 @@ package object arse {
       parser.Map(p, f)
     }
 
-    def collect[B](f: PartialFunction[A, B]): Parser[B] = {
-      p map { f applyOrElse (_, control.fail) }
-    }
-
-    def collect[B](f: A => Option[B]): Parser[B] = {
-      p map { f(_) getOrElse control.fail }
-    }
-
     def filter(f: A => Boolean): Parser[A] = {
-      p map { a => if (!f(a)) control.fail; a }
+      p map { case a if (f(a)) => a }
     }
 
     def filterNot(f: A => Boolean): Parser[A] = {
-      p map { a => if (f(a)) control.fail; a }
+      p map { case a if (!f(a)) => a }
     }
 
     /* def flatMap[A <: A, B](q: A => Parser[B]) = {

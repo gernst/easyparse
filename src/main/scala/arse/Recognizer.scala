@@ -4,9 +4,9 @@
 
 package arse
 
-object recognizer {
-  import control._
+import control._
 
+object recognizer {
   case class Rec(name: String, p: () => Recognizer) extends Recognizer {
     def apply(in: Input) = {
       p()(in)
@@ -18,20 +18,21 @@ object recognizer {
       if (in.text.startsWith(token, in.position)) {
         in.position += token.length
       } else {
-        fail
+        fail(in)
       }
     }
   }
 
   case object EOF extends Recognizer {
     def apply(in: Input) = {
-      if (!in.isEmpty) fail
+      if (!in.isEmpty)
+        fail(in)
     }
   }
 
   case object Fail extends Recognizer {
     def apply(in: Input) = {
-      fail
+      fail(in)
     }
   }
 
@@ -46,12 +47,6 @@ object recognizer {
     }
   }
 
-  case class Commit(p: Recognizer) extends Recognizer {
-    def apply(in: Input) = {
-      p(in) or abort("expected " + p, in)
-    }
-  }
-
   case class Seq(p: Recognizer, q: Recognizer) extends Recognizer {
     def apply(in: Input) = {
       p(in)
@@ -61,14 +56,38 @@ object recognizer {
 
   case class Or(p: Recognizer, q: Recognizer) extends Recognizer {
     def apply(in: Input) = {
-      val backtrack = in.position;
-      { p(in) } or { in.position = backtrack; q(in) }
+      val back = in.position;
+
+      {
+        in.position = back
+        p(in)
+      } or {
+        in.position = back
+        q(in)
+      } rollback {
+        in.position = back
+      }
+    }
+  }
+
+  case class Look(p: Recognizer) extends Recognizer {
+    def apply(in: Input) = {
+      val back = in.position
+
+      {
+        p(in)
+      } rollback {
+        in.position = back
+        backtrack()
+      }
     }
   }
 
   case class Rep(p: Recognizer) extends Recognizer {
+    val q = p.look
+
     def apply(in: Input) = {
-      p(in)
+      q(in)
       this(in)
     } or {
     }

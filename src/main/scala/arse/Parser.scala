@@ -32,14 +32,8 @@ object parser {
         in.position = matcher.end()
         matcher.group()
       } else {
-        fail
+        fail(in)
       }
-    }
-  }
-
-  case class Commit[+A](p: Parser[A]) extends Parser[A] {
-    def apply(in: Input) = {
-      p(in) or abort("expected " + p, in)
     }
   }
 
@@ -51,16 +45,40 @@ object parser {
     }
   }
 
+  case class Look[+A](p: Parser[A]) extends Parser[A] {
+    def apply(in: Input) = {
+      val back = in.position
+
+      {
+        p(in)
+      } rollback {
+        in.position = back
+        backtrack()
+      }
+    }
+  }
+
   case class Or[+A](p: Parser[A], q: Parser[A]) extends Parser[A] {
     def apply(in: Input) = {
-      val backtrack = in.position;
-      { p(in) } or { in.position = backtrack; q(in) }
+      val back = in.position
+
+      {
+        in.position = back
+        p(in)
+      } or {
+        in.position = back
+        q(in)
+      } rollback {
+        in.position = back
+      }
     }
   }
 
   case class Rep[+A](p: Parser[A]) extends Parser[List[A]] {
+    val q = p.look
+
     def apply(in: Input) = {
-      val a = p(in)
+      val a = q(in)
       val as = this(in)
       a :: as
     } or {
@@ -71,17 +89,22 @@ object parser {
   case class Map[A, +B](p: Parser[A], f: A => B) extends Parser[B] {
     def apply(in: Input) = {
       val a = p(in)
-      f(a)
+      try {
+        f(a)
+      } catch {
+        case cause: Exception =>
+          fail(in, cause)
+      }
     }
   }
 
-  case class FlatMap[A, B](p: Parser[A], q: A => Parser[B]) extends Parser[B] {
+  /* case class FlatMap[A, B](p: Parser[A], q: A => Parser[B]) extends Parser[B] {
     def apply(in: Input) = {
       val a = p(in)
       val b = q(a)(in)
       b
     }
-  }
+  } */
 
   case class SeqP[+A](p: Recognizer, q: Parser[A]) extends Parser[A] {
     def apply(in: Input) = {

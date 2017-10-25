@@ -7,33 +7,35 @@ package arse
 import scala.reflect.ClassTag
 
 object control {
-  trait Backtrack extends Throwable
-
-  object Fail extends Backtrack {
-    override def toString = "<generic failure>"
+  trait NoStackTrace {
+    this: Throwable =>
     override def fillInStackTrace = this
     override val getStackTrace = Array[StackTraceElement]()
   }
 
-  case class Abort[I](msg: String, in: I) extends Exception {
-    override def toString = in match {
-      case in: Iterable[_] =>
-        msg + " at '" + in.mkString(" ") + "'"
-      case _ =>
-        msg + " at '" + in + "'"
-    }
+  case object Backtrack extends Throwable with NoStackTrace {
+    override def toString = "backtrack"
   }
 
-  def fail = throw Fail
-  def abort[I](msg: String, in: I) = throw Abort(msg, in)
+  def backtrack() = throw Backtrack
 
   implicit class Control[A](first: => A) {
     def or[B <: A](second: => B) = {
       try {
         first
       } catch {
-        case _: Backtrack =>
+        case Backtrack =>
           second
+      }
+    }
+    
+    def rollback(second: => Unit) = {
+      try {
+        first
+      } catch {
+      case e: Throwable =>
+        second
+        throw e
       }
     }
 
@@ -42,7 +44,7 @@ object control {
         first
       } catch {
         case _: E =>
-          fail
+          backtrack()
       }
     }
   }
