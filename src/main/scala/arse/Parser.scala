@@ -1,14 +1,14 @@
 // ARSE Parser libary
-// (c) 2016 Gidon Ernst <gidonernst@gmail.com>
+// (c) 2017 Gidon Ernst <gidonernst@gmail.com>
 // This code is licensed under MIT license (see LICENSE for details)
 
 package arse
 
 import java.util.regex.Pattern
 
-object parser {
-  import control._
+import control._
 
+object parser {
   case class Rec[A](name: String, p: () => Parser[A]) extends Parser[A] {
     def apply(in: Input) = {
       p()(in)
