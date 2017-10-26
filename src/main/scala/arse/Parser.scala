@@ -14,6 +14,12 @@ object parser {
       p()(in)
     }
   }
+  
+  case object Fail extends Parser[Nothing] {
+    def apply(in: Input) = {
+      fail(in)
+    }
+  }
 
   case class Accept[+A](a: A) extends Parser[A] {
     def apply(in: Input) = {

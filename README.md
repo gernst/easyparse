@@ -31,17 +31,13 @@ class constructor, the parser for the case class is instantiated automatically.
 With *arse* you can specify this as follows:
 
     val expr: Parser[String, Expr] = P(top)
-    val id = Id.from(string)
-    val app = "(" ~ App.from(expr *) ~ ")"
+    val id = string ~> Id
+    val app = "(" ~ (expr *) ~ ")" ~> App
     val top = app | id
 
-The method `.from` extends function values and takes as argument and for each of
-its parameter types a parameter to specify the corresponding parser.
-Recursion is implemented in the `rec` combinator,
-which defers evaluation of its argument.
 
-Implementation
---------------
+Use
+---
 
 The library interface is divided into `Parser`s and `Recognizer`s
 with the distinction that instances of the former produce a value when applied.
@@ -50,16 +46,16 @@ The operator `~` implements sequential composition, it is overloaded to deal
 with different combinations of parsers and recognizers and replaces Scala's `~>`
 and `<~` combinators.
 
-Parsers and recogniziers are allowed to backtrack, which is implemented via
-non-local goto using exceptions of type `Backtrack`.
-As an example, the choice combinator roughly corresponds to
+### Backtracking
 
-    (p1 | p2)(in) = p1(in) or p2(in)
+The choice combinator `p | q` permits `p` (and `q`) to backtrack as long as they have not yet consumed input.
+Otherwise, parse failures are treated as errors. This works well with grammars that need a lookahead of 1.
+Sequential composition is strict, which helps error reporting.
+You can make a parser or recognizer non-strict by wrapping it in option `p ?` or by `p | parser.Fail`.
 
-where `or` executes its right argument only iff its left arguments throws a
-`Backtrack`.
+### Recursion
 
-Defning a parser `p` as
+Defining a parser `p` as
 
     val p = P(...)`
 
@@ -69,6 +65,8 @@ and `p` implicitly receives the string "p" as its name
 
 Mixfix Operator Parsing
 -----------------------
+
+**Note:** currently broken.
 
 The trait `Mixfix` implements
 [Pratt](https://en.wikipedia.org/wiki/Pratt_parser)-style parsers.
@@ -111,19 +109,16 @@ library (no longer) shipped with Scala is much more feature complete and support
 left recursion by packrat parsing.
 
 The [fastparse](http://www.lihaoyi.com/fastparse)
-library for Scala provides a similar interface, but has many additional (cool!)
-features.
+library for Scala provides a similar interface, but has many additional (cool!) features
+and it is designed for speed.
 
 No measurements on efficiency so far, but the library is probably rather slow.
 If you need speed, try a LALR parser generator instead, such as
 [beaver](http://beaver.sourceforge.net).
 
-No scanner functionality is provided. [jFlex](http://jflex.de) is really nice.
-
 TODOs
 -----
 
-- string based API with regular expression scanning and explicit whitespace
 - transparently hook parse trees into the generation of semantic values
     
     def parse: Tree[A]
@@ -131,5 +126,3 @@ TODOs
  
 - line and position tracking
 - mixfix pretty printer
-- strict parsers p! where failure leads to an error in the surrounding alternation
-- make the input implicit (dynamic variable?)
