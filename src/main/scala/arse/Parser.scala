@@ -53,9 +53,6 @@ object parser {
         in.position = back
         in.commit = false
         q(in)
-      } rollback {
-        in.position = back
-        in.commit = false
       }
     }
   }

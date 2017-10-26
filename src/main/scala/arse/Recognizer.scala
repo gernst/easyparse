@@ -68,7 +68,7 @@ object recognizer {
 
   case class Or(p: Recognizer, q: Recognizer) extends Recognizer {
     def apply(in: Input) = {
-      val back = in.position;
+      val back = in.position
 
       {
         in.position = back
@@ -78,9 +78,6 @@ object recognizer {
         in.position = back
         in.commit = false
         q(in)
-      } rollback {
-        in.position = back
-        in.commit = true
       }
     }
   }

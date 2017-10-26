@@ -134,14 +134,6 @@ package object arse {
       parser.SeqP(p, q)
     }
 
-    def ?~(q: Recognizer): Recognizer = {
-      recognizer.Seq(p.?, q)
-    }
-
-    def ?~[A](q: Parser[A]): Parser[A] = {
-      parser.SeqP(p.?, q)
-    }
-
     def |(q: Recognizer): Recognizer = {
       recognizer.Or(p, q)
     }
@@ -195,6 +187,7 @@ package object arse {
     }
 
     def +(): Parser[List[A]] = {
+      import implicits.ListParser
       p :: p.*
     }
 
@@ -203,10 +196,12 @@ package object arse {
     }
 
     def rep(sep: Recognizer): Parser[List[A]] = {
+      import implicits.ListParser
       p :: (sep ~ p).*
     }
 
     def ~*(sep: Recognizer): Parser[List[A]] = {
+      import implicits.ListParser
       p :: (sep ~ p).*
     }
 
@@ -247,45 +242,4 @@ package object arse {
     }
   }
 
-  implicit class Parser1[A](p: Parser[A]) {
-    def ^^[R](f: A => R) = {
-      p map { case a => f(a) }
-    }
-  }
-
-  implicit class Parser2[A, B](p: Parser[A ~ B]) {
-    def _1(): Parser[A] = {
-      p map (_._1)
-    }
-
-    def _2(): Parser[B] = {
-      p map (_._2)
-    }
-
-    def ^^[R](f: (A, B) => R) = {
-      p map { case a ~ b => f(a, b) }
-    }
-  }
-
-  implicit class Parser3[A, B, C](p: Parser[A ~ B ~ C]) {
-    def ^^[R](f: (A, B, C) => R) = {
-      p map { case a ~ b ~ c => f(a, b, c) }
-    }
-  }
-
-  implicit class Parser4[A, B, C, D](p: Parser[A ~ B ~ C ~ D]) {
-    def ^^[R](f: (A, B, C, D) => R) = {
-      p map { case a ~ b ~ c ~ d => f(a, b, c, d) }
-    }
-  }
-
-  implicit class ListParser[A](p: Parser[List[A]]) {
-    def ::(q: Parser[A]): Parser[List[A]] = {
-      (q ~ p) map { case a ~ as => a :: as }
-    }
-
-    def ++(q: Parser[List[A]]): Parser[List[A]] = {
-      (p ~ q) map { case as ~ bs => as ++ bs }
-    }
-  }
 }

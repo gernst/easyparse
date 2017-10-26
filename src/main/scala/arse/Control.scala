@@ -26,15 +26,5 @@ object control {
           second
       }
     }
-    
-    def rollback(second: => Unit) = {
-      try {
-        first
-      } catch {
-      case e: Throwable =>
-        second
-        throw e
-      }
-    }
   }
 }
