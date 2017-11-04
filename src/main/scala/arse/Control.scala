@@ -12,6 +12,10 @@ object control {
     override def fillInStackTrace = this
     override val getStackTrace = Array[StackTraceElement]()
   }
+  
+  def backtrack() = {
+    throw Backtrack
+  }
 
   case object Backtrack extends Throwable with NoStackTrace {
     override def toString = "backtrack"

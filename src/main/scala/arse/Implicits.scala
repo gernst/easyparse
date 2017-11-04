@@ -11,6 +11,10 @@ object implicits {
     def ~>[R](f: A => R) = {
       p map { case a => f(a) }
     }
+
+    def flatMap[B](q: A => Parser[B]) = {
+      parser.FlatMap(p, q)
+    }
   }
 
   implicit class Apply1[A, R](f: A => R) {

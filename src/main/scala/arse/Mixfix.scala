@@ -55,20 +55,20 @@ case class Mixfix[Op, Expr](name: String,
 
   def prefix_app(lower: Int, in: Input) = {
     val (op, prec) = prefix_op(in)
-    if (prec < lower) fail(in)
+    if (prec < lower) backtrack()
     val right = mixfix_app(prec, in)
     unary(op, right)
   }
 
   def postfix_app(lower: Int, upper: Int, left: Expr, in: Input) = {
     val (op, prec) = postfix_op(in)
-    if (prec < lower || upper < prec) fail(in)
+    if (prec < lower || upper < prec) backtrack()
     postinfix_app(lower, prec, unary(op, left), in)
   }
 
   def infix_app(lower: Int, upper: Int, left: Expr, in: Input) = {
     val (op, (assoc, prec)) = infix_op(in)
-    if (prec < lower || upper < prec) fail(in)
+    if (prec < lower || upper < prec) backtrack()
     val right = mixfix_app(rprec(assoc, prec), in)
     postinfix_app(lower, nprec(assoc, prec), binary(op, left, right), in)
   }

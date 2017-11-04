@@ -9,12 +9,85 @@ import java.util.regex.Pattern
 import control._
 
 object parser {
+  trait Parser[+A] extends WithFailure {
+    p =>
+
+    def apply(in: Input): A
+
+    def ~(q: Recognizer): Parser[A] = {
+      parser.SeqR(p, q)
+    }
+
+    def ~[B](q: Parser[B]): Parser[A ~ B] = {
+      parser.Seq(p, q)
+    }
+
+    def |[B >: A](q: Parser[B]): Parser[B] = {
+      parser.Or(p, q)
+    }
+
+    def *(): Parser[List[A]] = {
+      parser.Rep(p)
+    }
+
+    def +(): Parser[List[A]] = {
+      import implicits.ListParser
+      p :: p.*
+    }
+
+    def ?(): Parser[Option[A]] = {
+      (p map (Some(_))) | ret(None)
+    }
+
+    def rep(sep: Recognizer): Parser[List[A]] = {
+      import implicits.ListParser
+      p :: (sep ~ p).*
+    }
+
+    def ~*(sep: Recognizer): Parser[List[A]] = {
+      import implicits.ListParser
+      p :: (sep ~ p).*
+    }
+
+    def map[B](f: A => B): Parser[B] = {
+      parser.Map(p, f)
+    }
+
+    def filter(f: A => Boolean): Parser[A] = {
+      p map { case a if (f(a)) => a }
+    }
+
+    def filterNot(f: A => Boolean): Parser[A] = {
+      p map { case a if (!f(a)) => a }
+    }
+
+    def reduceLeft[B >: A](f: (B, A) => B): Parser[B] = {
+      p.+ map (_ reduceLeft f)
+    }
+
+    def reduceRight[B >: A](f: (A, B) => B): Parser[B] = {
+      p.+ map (_ reduceRight f)
+    }
+
+    def foldLeft[B](z: => Parser[B])(f: (B, A) => B): Parser[B] = {
+      (z ~ p.*) map {
+        case b ~ as => as.foldLeft(b)(f)
+      }
+    }
+
+    def foldRight[B](z: => Parser[B])(f: (A, B) => B): Parser[B] = {
+      (p.* ~ z) map {
+        case as ~ b => as.foldRight(b)(f)
+      }
+    }
+  }
+
   case class Rec[A](name: String, p: () => Parser[A]) extends Parser[A] {
     def apply(in: Input) = {
       p()(in)
     }
   }
-  
+
   case object Fail extends Parser[Nothing] {
     def apply(in: Input) = {
       fail(in)
@@ -87,19 +160,19 @@ object parser {
     }
   }
 
-  /* case class FlatMap[A, B](p: Parser[A], q: A => Parser[B]) extends Parser[B] {
+  case class FlatMap[A, B](p: Parser[A], q: A => Parser[B]) extends Parser[B] {
     def apply(in: Input) = {
       val a = p(in)
       val b = q(a)(in)
       b
     }
-  } */
+  }
 
   case class SeqP[+A](p: Recognizer, q: Parser[A]) extends Parser[A] {
     def apply(in: Input) = {
-      val a = p(in)
-      val b = q(in)
-      b
+      p(in)
+      val a = q(in)
+      a
     }
   }
 
@@ -108,40 +181,6 @@ object parser {
       val a = p(in)
       q(in)
       a
-    }
-  }
-
-  case class Seq1[A1, +B](p1: Parser[A1], f: (A1) => B) extends Parser[B] {
-    def apply(in: Input) = {
-      val a1 = p1(in)
-      f(a1)
-    }
-  }
-
-  case class Seq2[A1, A2, +B](p1: Parser[A1], p2: Parser[A2], f: (A1, A2) => B) extends Parser[B] {
-    def apply(in: Input) = {
-      val a1 = p1(in)
-      val a2 = p2(in)
-      f(a1, a2)
-    }
-  }
-
-  case class Seq3[A1, A2, A3, +B](p1: Parser[A1], p2: Parser[A2], p3: Parser[A3], f: (A1, A2, A3) => B) extends Parser[B] {
-    def apply(in: Input) = {
-      val a1 = p1(in)
-      val a2 = p2(in)
-      val a3 = p3(in)
-      f(a1, a2, a3)
-    }
-  }
-
-  case class Seq4[A1, A2, A3, A4, +B](p1: Parser[A1], p2: Parser[A2], p3: Parser[A3], p4: Parser[A4], f: (A1, A2, A3, A4) => B) extends Parser[B] {
-    def apply(in: Input) = {
-      val a1 = p1(in)
-      val a2 = p2(in)
-      val a3 = p3(in)
-      val a4 = p4(in)
-      f(a1, a2, a3, a4)
     }
   }
 }

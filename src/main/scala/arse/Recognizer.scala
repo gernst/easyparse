@@ -8,6 +8,44 @@ import control._
 import java.util.regex.Pattern
 
 object recognizer {
+  trait Recognizer extends WithFailure {
+    p =>
+
+    def apply(in: Input): Unit
+
+    def ?(): Recognizer = {
+      p | recognizer.Accept
+    }
+
+    def ~(q: Recognizer): Recognizer = {
+      recognizer.Seq(p, q)
+    }
+
+    def ~[A](q: Parser[A]): Parser[A] = {
+      parser.SeqP(p, q)
+    }
+
+    def |(q: Recognizer): Recognizer = {
+      recognizer.Or(p, q)
+    }
+
+    def *(): Recognizer = {
+      recognizer.Rep(p)
+    }
+
+    def +(): Recognizer = {
+      p ~ p.*
+    }
+
+    def rep(sep: Recognizer): Recognizer = {
+      p ~ (sep ~ p).*
+    }
+
+    def map[A](a: A): Parser[A] = {
+      p ~ ret(a)
+    }
+  }
+
   case class Rec(name: String, p: () => Recognizer) extends Recognizer {
     def apply(in: Input) = {
       p()(in)

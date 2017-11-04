@@ -12,6 +12,9 @@ package object arse {
   val ~ = Tuple2
   val $ = recognizer.EOF
 
+  type Recognizer = recognizer.Recognizer
+  type Parser[+A] = parser.Parser[A]
+
   trait WithPattern {
     def pattern: String
 
@@ -35,27 +38,23 @@ package object arse {
     }
   }
 
+  trait WithFailure {
+    def fail(in: Input, cause: Throwable = null) = {
+      if (in.commit) {
+        val message = this + " failed"
+        println("in fail: " + message + " at '" + in.rest + "'")
+        throw Failure(message, in, cause)
+      } else {
+        throw Backtrack
+      }
+    }
+  }
+
   case class Whitespace(pattern: String) extends WithPattern {
   }
 
-  class Input(val text: String, var position: Int, var commit: Boolean, val whitespace: Whitespace) {
-    def length = text.length - position
-    def rest = text drop position
-    def isEmpty = (length == 0)
-
-    def advanceBy(offset: Int) {
-      advanceTo(position + offset)
-    }
-
-    def advanceTo(next: Int) {
-      whitespace.matches(text, next) match {
-        case Some(next) =>
-          position = whitespace.matcher.end
-        case None =>
-          position = next
-      }
-      commit = true
-    }
+  object Whitespace {
+    val default = Whitespace("\\s*")
   }
 
   case class Failure(message: String, in: Input, cause: Throwable = null) extends Exception(message, cause) with NoStackTrace
@@ -107,139 +106,4 @@ package object arse {
   def P(p: => Recognizer)(implicit name: sourcecode.Name): Recognizer = {
     recognizer.Rec(name.value, () => p)
   }
-
-  trait Recognizer {
-    p =>
-
-    def apply(in: Input): Unit
-
-    def fail(in: Input) = {
-      if (in.commit) {
-        val message = p + " failed"
-        throw Failure(message, in)
-      } else {
-        throw Backtrack
-      }
-    }
-
-    def ?(): Recognizer = {
-      p | recognizer.Accept
-    }
-
-    def ~(q: Recognizer): Recognizer = {
-      recognizer.Seq(p, q)
-    }
-
-    def ~[A](q: Parser[A]): Parser[A] = {
-      parser.SeqP(p, q)
-    }
-
-    def |(q: Recognizer): Recognizer = {
-      recognizer.Or(p, q)
-    }
-
-    def *(): Recognizer = {
-      recognizer.Rep(p)
-    }
-
-    def +(): Recognizer = {
-      p ~ p.*
-    }
-
-    def rep(sep: Recognizer): Recognizer = {
-      p ~ (sep ~ p).*
-    }
-
-    def map[A](a: A): Parser[A] = {
-      p ~ ret(a)
-    }
-  }
-
-  trait Parser[+A] {
-    p =>
-
-    def apply(in: Input): A
-
-    def fail(in: Input, cause: Throwable = null) = {
-      if (in.commit) {
-        val message = p + " failed"
-        println("in fail: " + message + " at '" + in.rest + "'")
-        throw Failure(message, in, cause)
-      } else {
-        throw Backtrack
-      }
-    }
-
-    def ~(q: Recognizer): Parser[A] = {
-      parser.SeqR(p, q)
-    }
-
-    def ~[B](q: Parser[B]): Parser[A ~ B] = {
-      parser.Seq(p, q)
-    }
-
-    def |[B >: A](q: Parser[B]): Parser[B] = {
-      parser.Or(p, q)
-    }
-
-    def *(): Parser[List[A]] = {
-      parser.Rep(p)
-    }
-
-    def +(): Parser[List[A]] = {
-      import implicits.ListParser
-      p :: p.*
-    }
-
-    def ?(): Parser[Option[A]] = {
-      (p map (Some(_))) | ret(None)
-    }
-
-    def rep(sep: Recognizer): Parser[List[A]] = {
-      import implicits.ListParser
-      p :: (sep ~ p).*
-    }
-
-    def ~*(sep: Recognizer): Parser[List[A]] = {
-      import implicits.ListParser
-      p :: (sep ~ p).*
-    }
-
-    def map[B](f: A => B): Parser[B] = {
-      parser.Map(p, f)
-    }
-
-    def filter(f: A => Boolean): Parser[A] = {
-      p map { case a if (f(a)) => a }
-    }
-
-    def filterNot(f: A => Boolean): Parser[A] = {
-      p map { case a if (!f(a)) => a }
-    }
-
-    /* def flatMap[A <: A, B](q: A => Parser[B]) = {
-      parser.FlatMap(p, q)
-    } */
-
-    def reduceLeft[B >: A](f: (B, A) => B): Parser[B] = {
-      p.+ map (_ reduceLeft f)
-    }
-
-    def reduceRight[B >: A](f: (A, B) => B): Parser[B] = {
-      p.+ map (_ reduceRight f)
-    }
-
-    def foldLeft[B](z: => Parser[B])(f: (B, A) => B): Parser[B] = {
-      (z ~ p.*) map {
-        case b ~ as => as.foldLeft(b)(f)
-      }
-    }
-
-    def foldRight[B](z: => Parser[B])(f: (A, B) => B): Parser[B] = {
-      (p.* ~ z) map {
-        case as ~ b => as.foldRight(b)(f)
-      }
-    }
-  }
-
 }
