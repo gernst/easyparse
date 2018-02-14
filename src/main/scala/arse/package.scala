@@ -28,7 +28,7 @@ package object arse {
 
       if (matcher.lookingAt()) {
         val end = matcher.end
-        // println()
+        // // println()
         // println("remaining input '" + text.substring(end) + "'")
         Some(end)
       } else {
@@ -42,9 +42,10 @@ package object arse {
     def fail(in: Input, cause: Throwable = null) = {
       if (in.commit) {
         val message = this + " failed"
-        println("in fail: " + message + " at '" + in.rest + "'")
+        // println("in fail: " + this + " " + message + " at '" + in.rest + "'")
         throw Failure(message, in, cause)
       } else {
+        // println("in fail: " + this + " backtrack at '" + in.rest + "'")
         throw Backtrack
       }
     }
@@ -89,14 +90,14 @@ package object arse {
       str.substring(1, str.length - 1)
   }
 
-  def mixfix[O, E](p: => Parser[E],
-    op: String => O,
-    ap: (O, List[E]) => E,
-    s: Syntax[O],
+  def mixfix[Op, Expr](
+    p: => Parser[Expr],
+    op: Parser[Op],
+    ap: (Op, List[Expr]) => Expr,
+    s: Syntax[Op],
     min: Int = Int.MinValue,
     max: Int = Int.MaxValue)(implicit name: sourcecode.Name) = {
-    ???
-    //Mixfix[List[T], O, E](name.value, () => p, ap, s prefix_op op, s postfix_op op, s infix_op op, min, max)
+    Mixfix[Op, Expr](name.value, () => p, ap, s prefix_op op, s postfix_op op, s infix_op op, min, max)
   }
 
   def P[A](p: => Parser[A])(implicit name: sourcecode.Name): Parser[A] = {

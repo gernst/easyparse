@@ -12,7 +12,7 @@ object parser {
   trait Parser[+A] extends WithFailure {
     p =>
 
-    def apply(in: Input): A
+    def parse(in: Input): A
 
     def ~(q: Recognizer): Parser[A] = {
       parser.SeqR(p, q)
@@ -83,25 +83,25 @@ object parser {
   }
 
   case class Rec[A](name: String, p: () => Parser[A]) extends Parser[A] {
-    def apply(in: Input) = {
-      p()(in)
+    def parse(in: Input) = {
+      p() parse in
     }
   }
 
   case object Fail extends Parser[Nothing] {
-    def apply(in: Input) = {
+    def parse(in: Input) = {
       fail(in)
     }
   }
 
   case class Accept[+A](a: A) extends Parser[A] {
-    def apply(in: Input) = {
+    def parse(in: Input) = {
       a
     }
   }
 
   case class Regex(pattern: String) extends Parser[String] with WithPattern {
-    def apply(in: Input) = {
+    def parse(in: Input) = {
       matches(in.text, in.position) match {
         case Some(next) =>
           in advanceTo next
@@ -113,44 +113,48 @@ object parser {
   }
 
   case class Seq[+A, +B](p: Parser[A], q: Parser[B]) extends Parser[A ~ B] {
-    def apply(in: Input) = {
-      val a = p(in)
-      val b = q(in)
+    def parse(in: Input) = {
+      val a = p parse in
+      val b = q parse in
       (a, b)
     }
   }
 
   case class Or[+A](p: Parser[A], q: Parser[A]) extends Parser[A] {
-    def apply(in: Input) = {
+    def parse(in: Input) = {
       val back = in.position
 
       {
         in.position = back
         in.commit = false
-        p(in)
+        p parse in
       } or {
         in.position = back
         in.commit = false
-        q(in)
+        q parse in
       }
     }
   }
 
   case class Rep[+A](p: Parser[A]) extends Parser[List[A]] {
-    def apply(in: Input) = {
-      // TODO: code this in a loop
-      in.commit = false
-      val a = p(in)
-      val as = this(in)
-      a :: as
-    } or {
-      Nil
+    def parse(in: Input) = {
+      val back = in.position
+
+      {
+        in.commit = false
+        val a = p parse in
+        val as = this parse in
+        a :: as
+      } or {
+        in.position = back
+        Nil
+      }
     }
   }
 
   case class Map[A, +B](p: Parser[A], f: A => B) extends Parser[B] {
-    def apply(in: Input) = {
-      val a = p(in)
+    def parse(in: Input) = {
+      val a = p parse in
       try {
         f(a)
       } catch {
@@ -161,25 +165,25 @@ object parser {
   }
 
   case class FlatMap[A, B](p: Parser[A], q: A => Parser[B]) extends Parser[B] {
-    def apply(in: Input) = {
-      val a = p(in)
-      val b = q(a)(in)
+    def parse(in: Input) = {
+      val a = p parse in
+      val b = q(a) parse in
       b
     }
   }
 
   case class SeqP[+A](p: Recognizer, q: Parser[A]) extends Parser[A] {
-    def apply(in: Input) = {
-      p(in)
-      val a = q(in)
+    def parse(in: Input) = {
+      p parse in
+      val a = q parse in
       a
     }
   }
 
   case class SeqR[+A](p: Parser[A], q: Recognizer) extends Parser[A] {
-    def apply(in: Input) = {
-      val a = p(in)
-      q(in)
+    def parse(in: Input) = {
+      val a = p parse in
+      q parse in
       a
     }
   }

@@ -27,47 +27,48 @@ trait Syntax[Op] {
       (postfix_ops contains op) ||
       (infix_ops contains op)
 
-  def prefix_op(op: Parser[Op]) = op map prefix_ops
-  def postfix_op(op: Parser[Op]) = op map postfix_ops
-  def infix_op(op: Parser[Op]) = op map infix_ops
+  def prefix_op(op: Parser[Op]) = op map { n => (n, prefix_ops(n)) }
+  def postfix_op(op: Parser[Op]) = op map { n => (n, postfix_ops(n)) }
+  def infix_op(op: Parser[Op]) = op map { n => (n, infix_ops(n)) }
 }
 
-case class Mixfix[Op, Expr](name: String,
+case class Mixfix[Op, Expr](
+  name: String,
   inner_expr: () => Parser[Expr],
-  apply: (Op, List[Expr]) => Expr,
+  parse: (Op, List[Expr]) => Expr,
   prefix_op: Parser[(Op, Int)],
   postfix_op: Parser[(Op, Int)],
   infix_op: Parser[(Op, (Assoc, Int))],
   min: Int,
   max: Int)
-    extends Parser[Expr] {
+  extends Parser[Expr] {
 
   def nprec(assoc: Assoc, prec: Int) = if (assoc == Left) prec else prec - 1
   def rprec(assoc: Assoc, prec: Int) = if (assoc == Right) prec else prec + 1
 
   def unary(op: Op, arg: Expr) = {
-    apply(op, List(arg))
+    parse(op, List(arg))
   }
 
   def binary(op: Op, arg1: Expr, arg2: Expr) = {
-    apply(op, List(arg1, arg2))
+    parse(op, List(arg1, arg2))
   }
 
   def prefix_app(lower: Int, in: Input) = {
-    val (op, prec) = prefix_op(in)
+    val (op, prec) = prefix_op parse in
     if (prec < lower) backtrack()
     val right = mixfix_app(prec, in)
     unary(op, right)
   }
 
   def postfix_app(lower: Int, upper: Int, left: Expr, in: Input) = {
-    val (op, prec) = postfix_op(in)
+    val (op, prec) = postfix_op parse in
     if (prec < lower || upper < prec) backtrack()
     postinfix_app(lower, prec, unary(op, left), in)
   }
 
   def infix_app(lower: Int, upper: Int, left: Expr, in: Input) = {
-    val (op, (assoc, prec)) = infix_op(in)
+    val (op, (assoc, prec)) = infix_op parse in
     if (prec < lower || upper < prec) backtrack()
     val right = mixfix_app(rprec(assoc, prec), in)
     postinfix_app(lower, nprec(assoc, prec), binary(op, left, right), in)
@@ -78,12 +79,15 @@ case class Mixfix[Op, Expr](name: String,
 
     {
       in.position = back
+      in.commit = false
       infix_app(lower, upper, left, in)
     } or {
       in.position = back
+      in.commit = false
       postfix_app(lower, upper, left, in)
     } or {
       in.position = back;
+      in.commit = false
       left
     }
   }
@@ -93,10 +97,12 @@ case class Mixfix[Op, Expr](name: String,
 
     {
       in.position = back
+      in.commit = false
       prefix_app(lower, in)
     } or {
       in.position = back
-      inner_expr()(in)
+      in.commit = false
+      inner_expr() parse in
     }
   }
 
@@ -105,12 +111,12 @@ case class Mixfix[Op, Expr](name: String,
     postinfix_app(lower, max, left, in)
   }
 
-  def apply(in: Input) = {
+  def parse(in: Input) = {
     mixfix_app(min, in)
   }
 
   def above(lower: Int) = new Parser[Expr]() {
     def format = name
-    def apply(in: Input) = mixfix_app(lower, in)
+    def parse(in: Input) = mixfix_app(lower, in)
   }
 }

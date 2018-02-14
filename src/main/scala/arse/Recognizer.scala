@@ -11,7 +11,7 @@ object recognizer {
   trait Recognizer extends WithFailure {
     p =>
 
-    def apply(in: Input): Unit
+    def parse(in: Input): Unit
 
     def ?(): Recognizer = {
       p | recognizer.Accept
@@ -47,13 +47,13 @@ object recognizer {
   }
 
   case class Rec(name: String, p: () => Recognizer) extends Recognizer {
-    def apply(in: Input) = {
-      p()(in)
+    def parse(in: Input) = {
+      p() parse in
     }
   }
 
   case class Regex(pattern: String) extends Recognizer with WithPattern {
-    def apply(in: Input) = {
+    def parse(in: Input) = {
       matches(in.text, in.position) match {
         case Some(next) =>
           in advanceTo matcher.end
@@ -64,7 +64,7 @@ object recognizer {
   }
 
   case class Lit(token: String) extends Recognizer {
-    def apply(in: Input) = {
+    def parse(in: Input) = {
       if (in.text.startsWith(token, in.position)) {
         in advanceBy token.length
       } else {
@@ -74,57 +74,57 @@ object recognizer {
   }
 
   case object EOF extends Recognizer {
-    def apply(in: Input) = {
+    def parse(in: Input) = {
       if (!in.isEmpty)
         fail(in)
     }
   }
 
   case object Fail extends Recognizer {
-    def apply(in: Input) = {
+    def parse(in: Input) = {
       fail(in)
     }
   }
 
   case object Accept extends Recognizer {
-    def apply(in: Input) = {
+    def parse(in: Input) = {
     }
   }
 
   case class Drop[S, +A](p: Parser[A]) extends Recognizer {
-    def apply(in: Input) = {
-      p(in)
+    def parse(in: Input) = {
+      p parse in
     }
   }
 
   case class Seq(p: Recognizer, q: Recognizer) extends Recognizer {
-    def apply(in: Input) = {
-      p(in)
-      q(in)
+    def parse(in: Input) = {
+      p parse in
+      q parse in
     }
   }
 
   case class Or(p: Recognizer, q: Recognizer) extends Recognizer {
-    def apply(in: Input) = {
+    def parse(in: Input) = {
       val back = in.position
 
       {
         in.position = back
         in.commit = false
-        p(in)
+        p parse in
       } or {
         in.position = back
         in.commit = false
-        q(in)
+        q parse in
       }
     }
   }
 
   case class Rep(p: Recognizer) extends Recognizer {
-    def apply(in: Input) = {
+    def parse(in: Input) = {
       in.commit = false
-      p(in)
-      this(in)
+      p parse in
+      this parse in
     } or {
     }
   }
