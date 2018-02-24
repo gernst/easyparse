@@ -25,6 +25,10 @@ object parser {
     def |[B >: A](q: Parser[B]): Parser[B] = {
       parser.Or(p, q)
     }
+    
+    def |>[B >: A](b: B): Parser[B] = {
+      parser.Or(p, parser.Accept(b))
+    }
 
     def *(): Parser[List[A]] = {
       parser.Rep(p)
@@ -37,11 +41,6 @@ object parser {
 
     def ?(): Parser[Option[A]] = {
       (p map (Some(_))) | ret(None)
-    }
-
-    def rep(sep: Recognizer): Parser[List[A]] = {
-      import implicits.ListParser
-      p :: (sep ~ p).*
     }
 
     def ~*(sep: Recognizer): Parser[List[A]] = {
@@ -162,6 +161,8 @@ object parser {
           fail(in, cause)
       }
     }
+    
+    override def toString = p.toString
   }
 
   case class FlatMap[A, B](p: Parser[A], q: A => Parser[B]) extends Parser[B] {

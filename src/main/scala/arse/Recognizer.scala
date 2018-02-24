@@ -37,10 +37,6 @@ object recognizer {
       p ~ p.*
     }
 
-    def rep(sep: Recognizer): Recognizer = {
-      p ~ (sep ~ p).*
-    }
-
     def map[A](a: A): Parser[A] = {
       p ~ ret(a)
     }
