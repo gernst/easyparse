@@ -27,9 +27,9 @@ trait Syntax[Op] {
       (postfix_ops contains op) ||
       (infix_ops contains op)
 
-  def prefix_op(op: Parser[Op]) = op map { n => (n, prefix_ops(n)) }
-  def postfix_op(op: Parser[Op]) = op map { n => (n, postfix_ops(n)) }
-  def infix_op(op: Parser[Op]) = op map { n => (n, infix_ops(n)) }
+  def prefix_op(op: Parser[Op]) = op map { n => (n, prefix_ops.getOrElse(n, backtrack())) }
+  def postfix_op(op: Parser[Op]) = op map { n => (n, postfix_ops.getOrElse(n, backtrack())) }
+  def infix_op(op: Parser[Op]) = op map { n => (n, infix_ops.getOrElse(n, backtrack())) }
 }
 
 case class Mixfix[Op, Expr](
@@ -54,69 +54,66 @@ case class Mixfix[Op, Expr](
     parse(op, List(arg1, arg2))
   }
 
-  def prefix_app(lower: Int, in: Input) = {
-    val (op, prec) = prefix_op parse in
+  def prefix_app(lower: Int, in: Input, cm: Boolean) = {
+    val (op, prec) = prefix_op parse (in, false)
     if (prec < lower) backtrack()
-    val right = mixfix_app(prec, in)
+    val right = mixfix_app(prec, in, true)
     unary(op, right)
   }
 
-  def postfix_app(lower: Int, upper: Int, left: Expr, in: Input) = {
-    val (op, prec) = postfix_op parse in
+  def postfix_app(lower: Int, upper: Int, left: Expr, in: Input, cm: Boolean) = {
+    val (op, prec) = postfix_op parse (in, false)
     if (prec < lower || upper < prec) backtrack()
-    postinfix_app(lower, prec, unary(op, left), in)
+    postinfix_app(lower, prec, unary(op, left), in, true)
   }
 
-  def infix_app(lower: Int, upper: Int, left: Expr, in: Input) = {
-    val (op, (assoc, prec)) = infix_op parse in
+  def infix_app(lower: Int, upper: Int, left: Expr, in: Input, cm: Boolean) = {
+    val (op, (assoc, prec)) = infix_op parse (in, false)
     if (prec < lower || upper < prec) backtrack()
-    val right = mixfix_app(rprec(assoc, prec), in)
-    postinfix_app(lower, nprec(assoc, prec), binary(op, left, right), in)
+    val right = mixfix_app(rprec(assoc, prec), in, true)
+    postinfix_app(lower, nprec(assoc, prec), binary(op, left, right), in, cm)
   }
 
-  def postinfix_app(lower: Int, upper: Int, left: Expr, in: Input): Expr = {
+  def postinfix_app(lower: Int, upper: Int, left: Expr, in: Input, cm: Boolean): Expr = {
     val back = in.position
 
     {
       in.position = back
-      in.commit = false
-      infix_app(lower, upper, left, in)
+      infix_app(lower, upper, left, in, false)
     } or {
       in.position = back
-      in.commit = false
-      postfix_app(lower, upper, left, in)
+      postfix_app(lower, upper, left, in, false)
     } or {
-      in.position = back;
-      in.commit = false
+      in.position = back
       left
     }
   }
 
-  def mixfix_arg(lower: Int, in: Input) = {
-    val back = in.position
+  def mixfix_arg(lower: Int, in: Input, cm: Boolean) = {
+    val pos = in.position
 
     {
-      in.position = back
-      in.commit = false
-      prefix_app(lower, in)
+      prefix_app(lower, in, false)
     } or {
-      in.position = back
-      in.commit = false
-      inner_expr() parse in
+      inner_expr() parseAt (pos, in, cm)
     }
   }
 
-  def mixfix_app(lower: Int, in: Input): Expr = {
-    val left = mixfix_arg(lower, in)
-    postinfix_app(lower, max, left, in)
+  def mixfix_app(lower: Int, in: Input, cm: Boolean): Expr = {
+    val left = mixfix_arg(lower, in, cm)
+    postinfix_app(lower, max, left, in, true)
   }
 
-  def parse(in: Input) = {
-    mixfix_app(min, in)
+  def parse(in: Input, cm: Boolean) = {
+    mixfix_app(min, in, cm)
   }
 
   def above(lower: Int) = new Parser[Expr]() {
     def format = name
-    def parse(in: Input) = mixfix_app(lower, in)
+    def parse(in: Input, cm: Boolean) = mixfix_app(lower, in, cm)
+  }
+
+  override def toString = {
+    name
   }
 }

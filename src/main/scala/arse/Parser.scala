@@ -4,188 +4,218 @@
 
 package arse
 
+import control.Control
+import implicits.Parser2
+import implicits.ListParser
 import java.util.regex.Pattern
 
-import control._
+trait Parser[+A] {
+  p =>
 
-object parser {
-  trait Parser[+A] extends WithFailure {
-    p =>
+  def parse(in: Input, cm: Boolean): A
 
-    def parse(in: Input): A
+  def parse(in: Input): A = {
+    parse(in, true)
+  }
 
-    def ~(q: Recognizer): Parser[A] = {
-      parser.SeqR(p, q)
-    }
+  def parseAt(pos: Int, in: Input, cm: Boolean): A = {
+    in.position = pos
+    parse(in, cm)
+  }
 
-    def ~[B](q: Parser[B]): Parser[A ~ B] = {
-      parser.Seq(p, q)
-    }
+  def $ = new End(this)
+  def ~[B](s: String): Parser[A] = p <~ new Literal(s)
+  def ~[B](q: Parser[B]): Parser[A ~ B] = new Sequence(p, q)
 
-    def |[B >: A](q: Parser[B]): Parser[B] = {
-      parser.Or(p, q)
-    }
-    
-    def |>[B >: A](b: B): Parser[B] = {
-      parser.Or(p, parser.Accept(b))
-    }
+  def <~[B](q: Parser[B]): Parser[A] = (p ~ q)._1
+  def ~>[B](q: Parser[B]): Parser[B] = (p ~ q)._2
 
-    def *(): Parser[List[A]] = {
-      parser.Rep(p)
-    }
+  def |[B >: A](q: Parser[B]): Parser[B] = new Choice(p, q)
+  def map[B](f: A => B): Parser[B] = new Attribute(p, f)
 
-    def +(): Parser[List[A]] = {
-      import implicits.ListParser
-      p :: p.*
-    }
+  def ?(): Parser[Option[A]] = new Repeat(p, 0, 1) map {
+    case List() => None
+    case List(a) => Some(a)
+  }
 
-    def ?(): Parser[Option[A]] = {
-      (p map (Some(_))) | ret(None)
-    }
+  def *(): Parser[List[A]] = new Repeat(p, 0, Int.MaxValue)
+  def +(): Parser[List[A]] = new Repeat(p, 1, Int.MaxValue)
 
-    def ~*(sep: Recognizer): Parser[List[A]] = {
-      import implicits.ListParser
-      p :: (sep ~ p).*
-    }
+  def ~*(sep: String): Parser[List[A]] = p :: (sep ~ p).* | ret(Nil)
+  def ~*(sep: Parser[_]): Parser[List[A]] = p :: (sep ~> p).* | ret(Nil)
 
-    def map[B](f: A => B): Parser[B] = {
-      parser.Map(p, f)
-    }
+  def ~+(sep: String): Parser[List[A]] = p :: (sep ~ p).*
+  def ~+(sep: Parser[_]): Parser[List[A]] = p :: (sep ~> p).*
 
-    def filter(f: A => Boolean): Parser[A] = {
-      p map { case a if (f(a)) => a }
-    }
+  def filter(f: A => Boolean): Parser[A] = new Filter(p, f)
+  def filterNot(f: A => Boolean): Parser[A] = new Filter(p, (a: A) => !f(a))
+  def reduceLeft[B >: A](f: (B, A) => B): Parser[B] = p.+ map (_ reduceLeft f)
+  def reduceRight[B >: A](f: (A, B) => B): Parser[B] = p.+ map (_ reduceRight f)
+  def foldLeft[B](z: => Parser[B])(f: (B, A) => B): Parser[B] = (z ~ p.*) map { case b ~ as => as.foldLeft(b)(f) }
+  def foldRight[B](z: => Parser[B])(f: (A, B) => B): Parser[B] = (p.* ~ z) map { case as ~ b => as.foldRight(b)(f) }
+}
 
-    def filterNot(f: A => Boolean): Parser[A] = {
-      p map { case a if (!f(a)) => a }
-    }
+class Recursive[A](name: String, p: () => Parser[A]) extends Parser[A] {
+  def parse(in: Input, cm: Boolean) = p() parse (in, cm)
+  override def toString = name
+}
 
-    def reduceLeft[B >: A](f: (B, A) => B): Parser[B] = {
-      p.+ map (_ reduceLeft f)
-    }
+case object Fail extends Parser[Nothing] {
+  def parse(in: Input, cm: Boolean) = fail(null, in, cm)
+  override def toString = "fail"
+}
 
-    def reduceRight[B >: A](f: (A, B) => B): Parser[B] = {
-      p.+ map (_ reduceRight f)
-    }
+class Accept[+A](a: A) extends Parser[A] {
+  def parse(in: Input, cm: Boolean) = a
+  override def toString = "accept"
+}
 
-    def foldLeft[B](z: => Parser[B])(f: (B, A) => B): Parser[B] = {
-      (z ~ p.*) map {
-        case b ~ as => as.foldLeft(b)(f)
-      }
-    }
+class End[+A](p: Parser[A]) extends Parser[A] {
+  def parse(in: Input, cm: Boolean) = {
+    val a = p parse (in, cm)
+    if (!in.isEmpty) fail("end", in, cm)
+    a
+  }
 
-    def foldRight[B](z: => Parser[B])(f: (A, B) => B): Parser[B] = {
-      (p.* ~ z) map {
-        case as ~ b => as.foldRight(b)(f)
-      }
+  override def toString = {
+    "end"
+  }
+}
+
+class Literal(token: String) extends Parser[String] {
+  def parse(in: Input, cm: Boolean) = {
+    if (in.text.startsWith(token, in.position)) {
+      in advanceBy token.length
+      token
+    } else {
+      fail(token, in, cm)
     }
   }
 
-  case class Rec[A](name: String, p: () => Parser[A]) extends Parser[A] {
-    def parse(in: Input) = {
-      p() parse in
+  override def toString = {
+    token
+  }
+}
+
+class Regex(name: String, pattern: String) extends Parser[String] {
+  val regex = Pattern.compile(pattern)
+  val matcher = regex.matcher("")
+
+  def matches(text: String, pos: Int) = {
+    matcher.reset(text)
+    matcher.region(pos, text.length)
+    // print("match " + pattern + " at '" + text.substring(pos) + "' ")
+
+    if (matcher.lookingAt()) {
+      val end = matcher.end
+      // println()
+      // println("remaining input '" + text.substring(end) + "'")
+      Some(end)
+    } else {
+      // println("failed")
+      None
     }
   }
 
-  case object Fail extends Parser[Nothing] {
-    def parse(in: Input) = {
-      fail(in)
+  def parse(in: Input, cm: Boolean) = {
+    matcher.reset(in.text)
+    matcher.region(in.position, in.text.length)
+
+    matches(in.text, in.position) match {
+      case Some(next) =>
+        in advanceTo next
+        matcher.group()
+      case None =>
+        fail(name, in, cm)
     }
   }
 
-  case class Accept[+A](a: A) extends Parser[A] {
-    def parse(in: Input) = {
-      a
+  override def toString = {
+    name
+  }
+}
+
+class Whitespace(pattern: String) extends Regex(" ", pattern) {
+}
+
+class Sequence[+A, +B](p: Parser[A], q: Parser[B]) extends Parser[A ~ B] {
+  def parse(in: Input, cm: Boolean) = {
+    val a = p parse (in, cm)
+    val b = q parse (in, true)
+    (a, b)
+  }
+
+  override def toString = {
+    "(" + p + " ~ " + q + ")"
+  }
+}
+
+class Choice[+A](p: Parser[A], q: Parser[A]) extends Parser[A] {
+  def parse(in: Input, cm: Boolean) = {
+    val pos = in.position
+
+    {
+      p parseAt (pos, in, false)
+    } or {
+      q parseAt (pos, in, cm)
     }
   }
 
-  case class Regex(pattern: String) extends Parser[String] with WithPattern {
-    def parse(in: Input) = {
-      matches(in.text, in.position) match {
-        case Some(next) =>
-          in advanceTo next
-          matcher.group()
-        case None =>
-          fail(in)
-      }
-    }
+  override def toString = {
+    "(" + p + " | " + q + ")"
+  }
+}
+
+class Repeat[+A](p: Parser[A], min: Int, max: Int) extends Parser[List[A]] {
+  def parse(in: Input, cm: Boolean): List[A] = {
+    parse(0, in, cm)
   }
 
-  case class Seq[+A, +B](p: Parser[A], q: Parser[B]) extends Parser[A ~ B] {
-    def parse(in: Input) = {
-      val a = p parse in
-      val b = q parse in
-      (a, b)
-    }
-  }
+  def parse(done: Int, in: Input, cm: Boolean): List[A] = {
+    val pos = in.position
 
-  case class Or[+A](p: Parser[A], q: Parser[A]) extends Parser[A] {
-    def parse(in: Input) = {
-      val back = in.position
-
+    if (done < min) {
+      val a = p parse (in, cm)
+      val as = this parse (done + 1, in, cm)
+      a :: as
+    } else if (done < max)
       {
-        in.position = back
-        in.commit = false
-        p parse in
-      } or {
-        in.position = back
-        in.commit = false
-        q parse in
-      }
-    }
-  }
-
-  case class Rep[+A](p: Parser[A]) extends Parser[List[A]] {
-    def parse(in: Input) = {
-      val back = in.position
-
-      {
-        in.commit = false
-        val a = p parse in
-        val as = this parse in
+        val a = p parse (in, false)
+        val as = this parse (done + 1, in, cm)
         a :: as
       } or {
-        in.position = back
+        in.position = pos
         Nil
       }
+    else {
+      Nil
     }
   }
 
-  case class Map[A, +B](p: Parser[A], f: A => B) extends Parser[B] {
-    def parse(in: Input) = {
-      val a = p parse in
-      try {
-        f(a)
-      } catch {
-        case cause: Exception =>
-          fail(in, cause)
-      }
-    }
-    
-    override def toString = p.toString
+  override def toString = {
+    "(" + p + ") {" + min + "," + max + "}"
+  }
+}
+
+class Attribute[A, +B](p: Parser[A], f: A => B) extends Parser[B] {
+  def parse(in: Input, cm: Boolean) = {
+    val a = p parse (in, cm)
+    f(a)
   }
 
-  case class FlatMap[A, B](p: Parser[A], q: A => Parser[B]) extends Parser[B] {
-    def parse(in: Input) = {
-      val a = p parse in
-      val b = q(a) parse in
-      b
-    }
+  override def toString = {
+    p.toString
+  }
+}
+
+case class Filter[A](p: Parser[A], f: A => Boolean) extends Parser[A] {
+  def parse(in: Input, cm: Boolean) = {
+    val a = p parse (in, cm)
+    if (!f(a)) fail(p.toString, in, cm)
+    else a
   }
 
-  case class SeqP[+A](p: Recognizer, q: Parser[A]) extends Parser[A] {
-    def parse(in: Input) = {
-      p parse in
-      val a = q parse in
-      a
-    }
-  }
-
-  case class SeqR[+A](p: Parser[A], q: Recognizer) extends Parser[A] {
-    def parse(in: Input) = {
-      val a = p parse in
-      q parse in
-      a
-    }
+  override def toString = {
+    p.toString
   }
 }

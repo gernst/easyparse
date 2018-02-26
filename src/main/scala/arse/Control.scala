@@ -12,9 +12,13 @@ object control {
     override def fillInStackTrace = this
     override val getStackTrace = Array[StackTraceElement]()
   }
-  
+
   def backtrack() = {
     throw Backtrack
+  }
+
+  case class Error(msg: String, in: Input) extends Exception {
+    override def toString = "expected " + msg + " at '" + (in.rest take 10) + "...'"
   }
 
   case object Backtrack extends Throwable with NoStackTrace {

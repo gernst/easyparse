@@ -10,87 +10,55 @@ package object arse {
 
   type ~[+A, +B] = Tuple2[A, B]
   val ~ = Tuple2
-  val $ = recognizer.EOF
-
-  type Recognizer = recognizer.Recognizer
-  type Parser[+A] = parser.Parser[A]
-
-  trait WithPattern {
-    def pattern: String
-
-    val regex = Pattern.compile(pattern)
-    val matcher = regex.matcher("")
-
-    def matches(text: String, pos: Int) = {
-      matcher.reset(text)
-      matcher.region(pos, text.length)
-      // print("match " + pattern + " at '" + text.substring(pos) + "' ")
-
-      if (matcher.lookingAt()) {
-        val end = matcher.end
-        // // println()
-        // println("remaining input '" + text.substring(end) + "'")
-        Some(end)
-      } else {
-        // println("failed")
-        None
-      }
-    }
-  }
-
-  trait WithFailure {
-    def fail(in: Input, cause: Throwable = null) = {
-      if (in.commit) {
-        val message = this + " failed"
-        // println("in fail: " + this + " " + message + " at '" + in.rest + "'")
-        throw Failure(message, in, cause)
-      } else {
-        // println("in fail: " + this + " backtrack at '" + in.rest + "'")
-        throw Backtrack
-      }
-    }
-  }
-
-  case class Whitespace(pattern: String) extends WithPattern {
-  }
 
   object Whitespace {
-    val default = Whitespace("\\s*")
+    val default = new Whitespace("\\s*")
   }
-
-  case class Failure(message: String, in: Input, cause: Throwable = null) extends Exception(message, cause) with NoStackTrace
 
   implicit def input(text: String)(implicit w: Whitespace) = {
-    new Input(text, 0, true, w)
+    new Input(text, 0, w)
   }
 
-  val accept = recognizer.Accept
-  def ret[A](a: A) = parser.Accept(a)
+  implicit class toLit(s: String) {
+    def ~[A](q: Parser[A]) = new Literal(s) ~> q
+  }
 
-  implicit def lit(text: String): Recognizer = recognizer.Lit(text)
-  def lit[A](text: String, a: A): Parser[A] = recognizer.Lit(text) map a
+  def fail(msg: String, in: Input, cm: Boolean) = {
+    if (cm) 
+      throw Error(msg, in)
+    else
+      throw Backtrack
+  }
 
-  def scan(pattern: String): Parser[String] = parser.Regex(pattern)
+  def backtrack() = {
+    throw Backtrack
+  }
 
-  def int = scan("[+-]?[0-9]+") map {
+  def ret[A](a: A) = new Accept(a)
+
+  def int = S("[+-]?[0-9]+") map {
     str => str.toInt
   }
 
-  def double = scan("[+-]?[0-9]+[.]?[0-9]*") map {
+  def double = S("[+-]?[0-9]+[.]?[0-9]*") map {
     str => str.toDouble
   }
 
-  def char = scan("\'([^\']|\\')\'") map {
+  def char = S("\'([^\']|\\')\'") map {
     str =>
       str.substring(1, str.length - 1)
   }
 
-  def string = scan("\"[^\"]*\"") map {
+  def string = S("\"[^\"]*\"") map {
     str =>
       str.substring(1, str.length - 1)
   }
 
-  def mixfix[Op, Expr](
+  def S(pattern: String)(implicit name: sourcecode.Name): Parser[String] = {
+    new Regex(name.value, pattern)
+  }
+
+  def M[Op, Expr](
     p: => Parser[Expr],
     op: Parser[Op],
     ap: (Op, List[Expr]) => Expr,
@@ -101,10 +69,6 @@ package object arse {
   }
 
   def P[A](p: => Parser[A])(implicit name: sourcecode.Name): Parser[A] = {
-    parser.Rec(name.value, () => p)
-  }
-
-  def P(p: => Recognizer)(implicit name: sourcecode.Name): Recognizer = {
-    recognizer.Rec(name.value, () => p)
+    new Recursive(name.value, () => p)
   }
 }

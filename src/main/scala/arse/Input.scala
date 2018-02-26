@@ -1,6 +1,8 @@
 package arse
 
-class Input(val text: String, var position: Int, var commit: Boolean, val whitespace: Whitespace) {
+import arse.control.Backtrack
+
+class Input(val text: String, var position: Int, val whitespace: Whitespace) {
   def length = text.length - position
   def rest = text drop position
   def isEmpty = (length == 0)
@@ -16,6 +18,7 @@ class Input(val text: String, var position: Int, var commit: Boolean, val whites
       case None =>
         position = next
     }
-    commit = true
   }
+  
+  override def toString = rest
 }
