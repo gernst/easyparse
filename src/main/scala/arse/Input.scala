@@ -1,7 +1,5 @@
 package arse
 
-import arse.control.Backtrack
-
 class Input(val text: String, var position: Int, val whitespace: Whitespace) {
   def length = text.length - position
   def rest = text drop position

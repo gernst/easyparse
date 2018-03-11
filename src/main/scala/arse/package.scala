@@ -2,11 +2,12 @@
 // (c) 2017 Gidon Ernst <gidonernst@gmail.com>
 // This code is licensed under MIT license (see LICENSE for details)
 
+
+
 import scala.language.implicitConversions
-import java.util.regex.Pattern
 
 package object arse {
-  import control._
+  import bk._
 
   type ~[+A, +B] = Tuple2[A, B]
   val ~ = Tuple2
@@ -23,15 +24,15 @@ package object arse {
     def ~[A](q: Parser[A]) = new Literal(s) ~> q
   }
 
-  def fail(msg: String, in: Input, cm: Boolean) = {
-    if (cm) 
-      throw Error(msg, in)
-    else
-      throw Backtrack
+  case class Error(msg: String, in: Input) extends Exception {
+    override def toString = "expected " + msg + " at '" + (in.rest take 10) + "...'"
   }
 
-  def backtrack() = {
-    throw Backtrack
+  def fail(msg: String, in: Input, cm: Boolean) = {
+    if (cm)
+      throw Error(msg, in)
+    else
+      backtrack()
   }
 
   def ret[A](a: A) = new Accept(a)

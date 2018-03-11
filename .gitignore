@@ -1,4 +1,5 @@
 .cache
 .cache-main
+.cache-tests
 .settings
 /bin

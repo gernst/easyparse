@@ -4,7 +4,8 @@
 
 package arse
 
-import arse.control._
+import bk.Control
+import bk.backtrack
 
 sealed trait Assoc
 case object Non extends Assoc

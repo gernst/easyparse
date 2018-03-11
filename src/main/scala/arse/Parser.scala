@@ -4,10 +4,11 @@
 
 package arse
 
-import control.Control
-import implicits.Parser2
-import implicits.ListParser
 import java.util.regex.Pattern
+
+import bk.Control
+import implicits.ListParser
+import implicits.Parser2
 
 trait Parser[+A] {
   p =>
