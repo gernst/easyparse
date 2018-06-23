@@ -46,6 +46,20 @@ This example demonstrates a few features of the library:
 The complete example including a test case can be seen
 [here](https://github.com/gernst/arse/blob/master/src/test/scala/arse/test/Expr.scala).
 
+Installation
+------------
+
+Dependencies
+
+- [bk](https://github.com/gernst/bk)
+- [tst](https://github.com/gernst/tst)
+
+Compile & Install
+
+    sbt compile
+    sbt package
+    sbt publishLocal # if you want to use it in other projects locally
+
 Use
 ---
 
