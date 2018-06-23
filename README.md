@@ -56,11 +56,9 @@ The operator `~` implements sequential composition, it is overloaded to deal
 with different combinations of parsers and recognizers and replaces Scala's `~>`
 and `<~` combinators.
 
-### Quick reference
-
 Parsers `p: Parser[A]` parse a piece of text and return a result `a: A`.
 
-Using parsers
+### Using parsers
 
 -   define `implicit val w: Whitespace = ...` (interleave literals with whitespace `w`)
 -   `p.parse(in)` parse `p` on `in: String` or fail with an error
@@ -68,7 +66,7 @@ Using parsers
     (do not commit, internally used for backtracking, see also [bk](https://github.com/gernst/bk))
 -   `p.parseAt(in, pos, cm)` parse `in` at position `pos`
 
-Constructing parsers
+### Constructing parsers
 
 -   `S(regex)` matches and returns part of the input against `regex`
 -   `int`, `double`, `char`, `string`: predefined scanners for numbers, character literals `'x'` and strings `"..."` (support escaping `\'` resp `\"`)
@@ -86,7 +84,19 @@ Constructing parsers
 -   `p.reduceLeft(f)`, `p.reduceRight(f)`: parse `p+` and reduce the result with `f`
 -   `p.foldLeft(z)(f)`, `p.foldRight(z)(f)`, parse `z ~ p+` resp. `p+ ~ z` and fold the result with `f`
 
-Mixfix parsing
+### Strictness
+
+Beware that this library takes a nuanced view on backtracking:
+Ordered choice `p | q` permits `p` to fail and tries `q` *only* if `p` has
+1) not consumed input and 2) not produced a result (which includes `ret(a)`).
+Similarly, `p*` returns an error when `p` can be parsed partially.
+
+This leads to somewhat reasonable automatic error reporting and it is usually the behavior that one needs.
+However, it means that you cannot backtrack over arbitrary complex pieces of syntax, which can sometimes be a nuisance.
+For example, `(int ~ "a") | (int ~ "b")` fails on the input `"0b"` because it commits to the first choice after successfully parsing `"0"` with `int`.
+
+
+### Mixfix parsing
 
 -   `M(p, op, ap, s)` parses mixfix expressions
 
