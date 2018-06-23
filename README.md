@@ -87,8 +87,7 @@ Parsers `p: Parser[A]` parse a piece of text and return a result `a: A`.
 ### Strictness
 
 Beware that this library takes a nuanced view on backtracking:
-Ordered choice `p | q` permits `p` to fail and tries `q` *only* if `p` has
-1) not consumed input and 2) not produced a result (which includes `ret(a)`).
+Ordered choice `p | q` permits `p` to fail and tries `q` *only* if `p` has 1) not consumed input and 2) not produced a result (which includes `ret(a)`).
 Similarly, `p*` returns an error when `p` can be parsed partially.
 
 This leads to somewhat reasonable automatic error reporting and it is usually the behavior that one needs.
