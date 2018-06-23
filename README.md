@@ -53,6 +53,7 @@ Dependencies
 
 - [bk](https://github.com/gernst/bk)
 - [tst](https://github.com/gernst/tst)
+- [sourcecode](https://github.com/lihaoyi/sourcecode)
 
 Compile & Install
 
