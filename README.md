@@ -34,8 +34,17 @@ With *arse* you can specify this as follows:
     val expr: Parser[Expr] = P(app | id)
     val id = Id(name)
     val app = App("(" ~ (expr *) ~ ")")
-    
-The complete example can be seen [here](https://github.com/gernst/arse/blob/master/src/test/scala/arse/test/Expr.scala).
+
+This example demonstrates a few features of the library:
+
+-   Primitive combinators are scanners `S("regex")` and literals `"lit"`
+-   Sequential composition `p ~ q`, which is strict in `q` if `p` succeeds
+-   Ordered choice `p | q`, which backtracks if `p` fails and tries `q`
+-   Recursive parsers through `P(p)`, which evaluates `p` lazily
+-   Implicit lifting of functions to parsers, where `f(p1 ~ ... ~ pn)` parses `p1 ~ ... ~ pn` and applies `f(a1, ..., an)` to the results `a1, ..., an`
+
+The complete example including a test case can be seen
+[here](https://github.com/gernst/arse/blob/master/src/test/scala/arse/test/Expr.scala).
 
 Use
 ---
@@ -47,44 +56,55 @@ The operator `~` implements sequential composition, it is overloaded to deal
 with different combinations of parsers and recognizers and replaces Scala's `~>`
 and `<~` combinators.
 
-### Backtracking
+### Quick reference
 
-The choice combinator `p | q` permits `p` (and `q`) to backtrack as long as they have not yet consumed input.
-Otherwise, parse failures are treated as errors. This works well with grammars that need a lookahead of 1.
-Sequential composition is strict, which helps error reporting.
-You can make a parser or recognizer non-strict by wrapping it in option `p ?` or by `p | parser.Fail`.
+Parsers `p: Parser[A]` parse a piece of text and return a result `a: A`.
 
-### Recursion
+Using parsers
 
-Defining a parser `p` as
+-   define `implicit val w: Whitespace = ...` (interleave literals with whitespace `w`)
+-   `p.parse(in)` parse `p` on `in: String` or fail with an error
+-   `p.parse(in, cm=false)` try to parse `p` and fail with `backtrack()`
+    (do not commit, internally used for backtracking, see also [bk](https://github.com/gernst/bk))
+-   `p.parseAt(in, pos, cm)` parse `in` at position `pos`
 
-    val p = P(...)`
+Constructing parsers
 
-has two effects: the argument to `P` is evaluated lazily to support recursion
-and `p` implicitly receives the string "p" as its name
-(see <https://github.com/lihaoyi/sourcecode>).
+-   `S(regex)` matches and returns part of the input against `regex`
+-   `int`, `double`, `char`, `string`: predefined scanners for numbers, character literals `'x'` and strings `"..."` (support escaping `\'` resp `\"`)
+-   `val n: Parser[T] = P(p)` declares a recursive parser with name `n` that defers evaluation of `p` to allow forward declaration of `p`;
+     works in class/object scope when `p` refers to fields, but not when `p` refers to local variables defined later
+-   `ret(a)` succeeds without consuming input and returns `a`
+-   `p ~ q` parses `p` and returns a pair `(a,b)` of the results
+-   `p ~> q` and `p <~ q` are variants of sequential composition that discard the right resp. left result
+-   `p | q` tries `p` and if it fails parses `q`
+-   `"lit" ~ p` matches a literal "lit", parses `p` and returns it's result, similarly `p ~ "lit"`
+-   `p $` parses `p` but causes an error if there is remaining input after `p`
+-   `p ?`, `p *`, `p +`: optional and sequence parsers, returning `Option[_]` resp. `List[_]`
+-   `p ~* q` and `p ~+ q`: parse `p ~ q ~ ... ~ q ~ p` and return the results of `p` as `List[_]`; the latter requires at least one `p` result
+-   `p.filter(f)`, `p.filterNot(f)`, `p.map(f)`: filter/map a result by a predicate/function `f`
+-   `p.reduceLeft(f)`, `p.reduceRight(f)`: parse `p+` and reduce the result with `f`
+-   `p.foldLeft(z)(f)`, `p.foldRight(z)(f)`, parse `z ~ p+` resp. `p+ ~ z` and fold the result with `f`
 
-Mixfix Operator Parsing
------------------------
+Mixfix parsing
 
-**Note:** currently broken.
+-   `M(p, op, ap, s)` parses mixfix expressions
 
-The trait `Mixfix` implements
-[Pratt](https://en.wikipedia.org/wiki/Pratt_parser)-style parsers.
-It has the following parameters
+    - `p` is used to parse inner expressions
+    - `op`: parse an operator such as "+"
+    - `ap`: apply subexpressions as arguments to an operator previously returned by `op`
+    - `s: Syntax`: a database of mixfix operators
 
-- `type O`: the type of operators
-- `type E`: the type of expressions
-- `pre/post/infix_op`:
-  parse an operator of the given kind, returning its precedence
-  (and associativity)
-- `inner_expr`: anything that binds stronger than mixfix operators
-- `unary` and `binary` expression constructors
+`trait Syntax` is parametrized by
 
-The companion object provides a method `mixfix` to instantiate such a parser,
-given constructors for operators and application, and a `Syntax` object defining
-the mixfix operators. The first parameter `p` of `mixfix` is used to parse
-atomic inner terms.
+    def prefix_ops: Map[Op, Int]
+    def postfix_ops: Map[Op, Int]
+    def infix_ops: Map[Op, (Assoc, Int)]
+
+which classify an operator returned by `op` into prefix, postfix, and infix
+and return the respective precedence.
+If you want a dynamic set of mixfix operators, just implement these as `var`s
+in your `Syntax` object, no need to re-create the `M(...)` parser everytime you change the set of operators.
 
 Note that it is possible to overload operators in the different categories,
 the parsing algorithm can discern e.g. between unary and binary `-` (minus).
@@ -105,6 +125,8 @@ See also:
 Limitations
 -----------
 
+The library is probably slow and would suffer from backtracking on ambiguous grammars.
+
 The [combinator](https://github.com/scala/scala-parser-combinators)
 library (no longer) shipped with Scala is much more feature complete and supports
 left recursion by packrat parsing.
@@ -113,17 +135,18 @@ The [fastparse](http://www.lihaoyi.com/fastparse)
 library for Scala provides a similar interface, but has many additional (cool!) features
 and it is designed for speed.
 
-No measurements on efficiency so far, but the library is probably rather slow.
-If you need speed, try a LALR parser generator instead, such as
-[beaver](http://beaver.sourceforge.net).
+The [parseback](https://github.com/djspiewak/parseback)
+handles *all* context free grammars through
+[parsing with derivatives](http://matt.might.net/articles/parsing-with-derivatives/).
+Give this library a try if you need a more flexible grammar
+or run into limitations of `arse`s naive backtracking.
 
-TODOs
------
+If you need guaranteed linear runtime complexity, try a LALR parser generator instead, 
+such as [beaver](http://beaver.sourceforge.net).
 
-- transparently hook parse trees into the generation of semantic values
-    
-    def parse: Tree[A]
-    def apply = parse.get
- 
+TODOs/Wishlist
+--------------
+
 - line and position tracking
+- default implementation of syntax trees that store positioning information
 - mixfix pretty printer
