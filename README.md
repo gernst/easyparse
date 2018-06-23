@@ -30,11 +30,12 @@ language. The main idea is that, given a parser for the arguments of a case
 class constructor, the parser for the case class is instantiated automatically.
 With *arse* you can specify this as follows:
 
-    val expr: Parser[String, Expr] = P(top)
-    val id = string ~> Id
-    val app = "(" ~ (expr *) ~ ")" ~> App
-    val top = app | id
-
+    val name = S("[a-zA-Z]+")
+    val expr: Parser[Expr] = P(app | id)
+    val id = Id(name)
+    val app = App("(" ~ (expr *) ~ ")")
+    
+The complete example can be seen [here](https://github.com/gernst/arse/blob/master/src/test/scala/arse/test/Expr.scala).
 
 Use
 ---
