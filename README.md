@@ -64,13 +64,6 @@ Compile & Install
 Use
 ---
 
-The library interface is divided into `Parser`s and `Recognizer`s
-with the distinction that instances of the former produce a value when applied.
-In the above example, the `"("` and `")"` are (implicitly) recognizers.
-The operator `~` implements sequential composition, it is overloaded to deal
-with different combinations of parsers and recognizers and replaces Scala's `~>`
-and `<~` combinators.
-
 Parsers `p: Parser[A]` parse a piece of text and return a result `a: A`.
 
 ### Using parsers

@@ -17,7 +17,7 @@ object Expr {
   implicit val W = Whitespace.default
   
   def main(args: Array[String]) {
-    val in = "(a b (c d) 0)"
+    val in = "(a b (c d) e)"
     val out = expr.parse(in)
     println(out)
   }
