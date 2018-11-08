@@ -2,8 +2,6 @@
 // (c) 2017 Gidon Ernst <gidonernst@gmail.com>
 // This code is licensed under MIT license (see LICENSE for details)
 
-
-
 import scala.language.implicitConversions
 
 package object arse {
@@ -22,20 +20,24 @@ package object arse {
 
   implicit class toLit(s: String) {
     def ~[A](q: Parser[A]) = new Literal(s) ~> q
+    def ?~[A](q: Parser[A]) = new Literal(s) ?~> q
   }
 
   case class Error(msg: String, in: Input) extends Exception {
-    override def toString = "expected " + msg + " at '" + (in.rest take 10) + "...'"
+    override def toString = msg + " at '" + (in.rest take 10) + "...'"
   }
 
-  def fail(msg: String, in: Input, cm: Boolean) = {
-    if (cm)
-      throw Error(msg, in)
-    else
+  def fail(msg: String, in: Input, cm: Boolean, cause: Throwable = null) = {
+    if (cm) {
+      throw Error(msg, in) initCause cause
+    } else {
       backtrack()
+    }
   }
 
   def ret[A](a: A) = new Accept(a)
+  
+  def L(tokens: String*) = new Literals(tokens: _*)
 
   def int = S("[+-]?[0-9]+") map {
     str => str.toInt

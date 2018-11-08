@@ -36,7 +36,7 @@ trait Syntax[Op] {
 case class Mixfix[Op, Expr](
   name: String,
   inner_expr: () => Parser[Expr],
-  parse: (Op, List[Expr]) => Expr,
+  apply: (Op, List[Expr]) => Expr,
   prefix_op: Parser[(Op, Int)],
   postfix_op: Parser[(Op, Int)],
   infix_op: Parser[(Op, (Assoc, Int))],
@@ -48,11 +48,11 @@ case class Mixfix[Op, Expr](
   def rprec(assoc: Assoc, prec: Int) = if (assoc == Right) prec else prec + 1
 
   def unary(op: Op, arg: Expr) = {
-    parse(op, List(arg))
+    apply(op, List(arg))
   }
 
   def binary(op: Op, arg1: Expr, arg2: Expr) = {
-    parse(op, List(arg1, arg2))
+    apply(op, List(arg1, arg2))
   }
 
   def prefix_app(lower: Int, in: Input, cm: Boolean) = {
