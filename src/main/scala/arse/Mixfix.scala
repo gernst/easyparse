@@ -22,6 +22,8 @@ trait Syntax[Op] {
   def prefix_ops: Map[Op, Int]
   def postfix_ops: Map[Op, Int]
   def infix_ops: Map[Op, (Assoc, Int)]
+  
+  def ops = (prefix_ops.keys ++ postfix_ops.keys ++ infix_ops.keys).toSeq
 
   def contains(op: Op) =
     (prefix_ops contains op) ||

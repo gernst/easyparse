@@ -27,6 +27,7 @@ trait Parser[+A] {
   def $ = new End(this)
   def ~[B](s: String): Parser[A] = p <~ new Literal(s)
   def ~[B](q: Parser[B]): Parser[A ~ B] = new Sequence(p, q, strict = true)
+  def ?~[B](s: String): Parser[A] = p ?<~ new Literal(s)
   def ?~[B](q: Parser[B]): Parser[A ~ B] = new Sequence(p, q, strict = false)
 
   def <~[B](q: Parser[B]): Parser[A] = (p ~ q)._1
@@ -217,7 +218,10 @@ class Repeat[+A](p: Parser[A], min: Int, max: Int) extends Parser[List[A]] {
   }
 
   override def toString = {
-    "(" + p + ") {" + min + "," + max + "}"
+    if(min == 0 && max == 1) "(" + p + ") ?"
+    else if(min == 0 && max == Int.MaxValue) "(" + p + ") *"
+    else if(min == 1 && max == Int.MaxValue) "(" + p + ") +"
+    else "(" + p + ") {" + min + "," + max + "}"
   }
 }
 

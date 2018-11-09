@@ -40,7 +40,7 @@ object Calc extends tst.Test {
       parse(i.toString) expect i
     }
   }
-
+  
   test("sum") {
     parse("0+").fails
     parse("0") expect 0

@@ -41,6 +41,18 @@ object implicits {
     }
   }
 
+  implicit class Apply5[A, B, C, D, E, R](f: (A, B, C, D, E) => R) {
+    def apply(p: Parser[A ~ B ~ C ~ D ~ E]): Parser[R] = {
+      p map { case a ~ b ~ c ~ d ~ e => f(a, b, c, d, e) }
+    }
+  }
+
+  implicit class Apply6[A, B, C, D, E, F, R](g: (A, B, C, D, E, F) => R) {
+    def apply(p: Parser[A ~ B ~ C ~ D ~ E ~ F]): Parser[R] = {
+      p map { case a ~ b ~ c ~ d ~ e ~ f => g(a, b, c, d, e, f) }
+    }
+  }
+
   implicit class ListParser[A](p: Parser[List[A]]) {
     def ::(q: Parser[A]): Parser[List[A]] = {
       (q ~ p) map { case a ~ as => a :: as }
