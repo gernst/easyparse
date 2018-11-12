@@ -24,7 +24,7 @@ package object arse {
   }
 
   case class Error(msg: String, in: Input) extends Exception {
-    override def toString = msg + " at '" + (in.rest take 10) + "...'"
+    override def toString = msg + " at '" + (in.rest take 32) + "...'"
   }
 
   def fail(msg: String, in: Input, cm: Boolean, cause: Throwable = null) = {

@@ -22,13 +22,20 @@ trait Syntax[Op] {
   def prefix_ops: Map[Op, Int]
   def postfix_ops: Map[Op, Int]
   def infix_ops: Map[Op, (Assoc, Int)]
-  
+
   def ops = (prefix_ops.keys ++ postfix_ops.keys ++ infix_ops.keys).toSeq
 
   def contains(op: Op) =
     (prefix_ops contains op) ||
       (postfix_ops contains op) ||
       (infix_ops contains op)
+
+  def prec(op: Op) = {
+    if (prefix_ops contains op) prefix_ops(op)
+    else if (postfix_ops contains op) postfix_ops(op)
+    else if (infix_ops contains op) infix_ops(op)._2
+    else throw new NoSuchElementException
+  }
 
   def prefix_op(op: Parser[Op]) = op map { n => (n, prefix_ops.getOrElse(n, backtrack())) }
   def postfix_op(op: Parser[Op]) = op map { n => (n, postfix_ops.getOrElse(n, backtrack())) }
