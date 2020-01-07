@@ -4,9 +4,6 @@
 
 package arse
 
-import bk.Control
-import bk.backtrack
-
 sealed trait Assoc
 case object Non extends Assoc
 case object Left extends Assoc

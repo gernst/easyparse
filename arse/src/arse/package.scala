@@ -5,14 +5,8 @@
 import scala.language.implicitConversions
 
 package object arse {
-  import bk._
-
   type ~[+A, +B] = Tuple2[A, B]
   val ~ = Tuple2
-
-  object Whitespace {
-    val default = new Whitespace("\\s*")
-  }
 
   implicit def input(text: String)(implicit w: Whitespace) = {
     new Input(text, 0, w)
@@ -41,6 +35,10 @@ package object arse {
 
   def int = S("[+-]?[0-9]+") map {
     str => str.toInt
+  }
+  
+  def bigint = S("[+-]?[0-9]+") map {
+    str => BigInt(str)
   }
 
   def double = S("[+-]?[0-9]+[.]?[0-9]*") map {
@@ -73,5 +71,30 @@ package object arse {
 
   def P[A](p: => Parser[A])(implicit name: sourcecode.Name): Parser[A] = {
     new Recursive(name.value, () => p)
+  }
+  
+  trait NoStackTrace {
+    this: Throwable =>
+    override def fillInStackTrace = this
+    override val getStackTrace = Array[StackTraceElement]()
+  }
+
+  def backtrack() = {
+    throw Backtrack()
+  }
+
+  case class Backtrack() extends Throwable /* with NoStackTrace */ {
+    override def toString = "backtrack"
+  }
+
+  implicit class Control[A](first: => A) {
+    def or[B <: A](second: => B) = {
+      try {
+        first
+      } catch {
+        case Backtrack() =>
+          second
+      }
+    }
   }
 }

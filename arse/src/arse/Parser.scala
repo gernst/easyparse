@@ -6,7 +6,6 @@ package arse
 
 import java.util.regex.Pattern
 
-import bk.Control
 import implicits.ListParser
 import implicits.Parser2
 
@@ -17,6 +16,11 @@ trait Parser[+A] {
 
   def parse(in: Input): A = {
     parse(in, true)
+  }
+
+  def parseAll(in: Input): A = {
+    val p = this.$
+    p.parse(in)
   }
 
   def parseAt(pos: Int, in: Input, cm: Boolean): A = {
@@ -162,6 +166,10 @@ class Regex(name: String, pattern: String) extends Parser[String] {
 class Whitespace(pattern: String) extends Regex(" ", pattern) {
 }
 
+object Whitespace {
+  val default = new Whitespace("\\s*")
+}
+
 class Sequence[+A, +B](p: Parser[A], q: Parser[B], strict: Boolean) extends Parser[A ~ B] {
   def parse(in: Input, cm: Boolean) = {
     val a = p parse (in, cm)
@@ -218,9 +226,9 @@ class Repeat[+A](p: Parser[A], min: Int, max: Int) extends Parser[List[A]] {
   }
 
   override def toString = {
-    if(min == 0 && max == 1) "(" + p + ") ?"
-    else if(min == 0 && max == Int.MaxValue) "(" + p + ") *"
-    else if(min == 1 && max == Int.MaxValue) "(" + p + ") +"
+    if (min == 0 && max == 1) "(" + p + ") ?"
+    else if (min == 0 && max == Int.MaxValue) "(" + p + ") *"
+    else if (min == 1 && max == Int.MaxValue) "(" + p + ") +"
     else "(" + p + ") {" + min + "," + max + "}"
   }
 }
