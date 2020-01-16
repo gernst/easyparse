@@ -9,8 +9,8 @@ case object Non extends Assoc
 case object Left extends Assoc
 case object Right extends Assoc
 
-trait Fixity
-case object Nilfix extends Fixity
+trait Fixity { def prec: Int }
+case object Nilfix extends Fixity { def prec = 0 }
 case class Prefix(prec: Int) extends Fixity
 case class Postfix(prec: Int) extends Fixity
 case class Infix(assoc: Assoc, prec: Int) extends Fixity

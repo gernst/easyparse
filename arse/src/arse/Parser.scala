@@ -40,8 +40,8 @@ trait Parser[+A] {
   def ?~>[B](q: Parser[B]): Parser[B] = (p ?~ q)._2
 
   def |[B >: A](q: Parser[B]): Parser[B] = new Choice(p, q)
-  def map[B](f: A => B): Parser[B] = new Attribute(p, f, strict = true)
-  def collect[B](f: A => B): Parser[B] = new Attribute(p, f, strict = false)
+  def map[B](f: A => B): Parser[B] = new Attribute(p, f, partial = false)
+  def collect[B](f: A => B): Parser[B] = new Attribute(p, f, partial = true)
 
   def ?(): Parser[Option[A]] = new Repeat(p, 0, 1) map {
     case List() => None
@@ -233,15 +233,14 @@ class Repeat[+A](p: Parser[A], min: Int, max: Int) extends Parser[List[A]] {
   }
 }
 
-class Attribute[A, +B](p: Parser[A], f: A => B, strict: Boolean) extends Parser[B] {
-  def parse(in: Input, cm: Boolean) = {
-    try {
+class Attribute[A, +B](p: Parser[A], f: A => B, partial: Boolean) extends Parser[B] {
+  def parse(in: Input, cm: Boolean) = f match {
+    case f: PartialFunction[A, B] if partial =>
+      val a = p parse (in, cm)
+      f.applyOrElse(a, fail("expected " + p + " (partial attribute)", in, cm))
+    case _ =>
       val a = p parse (in, cm)
       f(a)
-    } catch {
-      case e: Exception =>
-        fail("expected " + p + " (attribute failed)", in, strict, e)
-    }
   }
 
   override def toString = {

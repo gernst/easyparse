@@ -68,7 +68,7 @@ package object arse {
     max: Int = Int.MaxValue)(implicit name: sourcecode.Name) = {
     Mixfix[Op, Expr](name.value, () => p, ap, s prefix_op op, s postfix_op op, s infix_op op, min, max)
   }
-
+  
   def P[A](p: => Parser[A])(implicit name: sourcecode.Name): Parser[A] = {
     new Recursive(name.value, () => p)
   }
