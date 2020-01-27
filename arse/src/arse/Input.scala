@@ -1,3 +1,7 @@
+// ARSE Parser libary
+// (c) 2020 Gidon Ernst <gidonernst@gmail.com>
+// This code is licensed under MIT license (see LICENSE for details)
+
 package arse
 
 class Input(val text: String, var position: Int, val whitespace: Whitespace) {

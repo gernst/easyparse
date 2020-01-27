@@ -1,5 +1,5 @@
 // ARSE Parser libary
-// (c) 2017 Gidon Ernst <gidonernst@gmail.com>
+// (c) 2020 Gidon Ernst <gidonernst@gmail.com>
 // This code is licensed under MIT license (see LICENSE for details)
 
 package arse

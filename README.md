@@ -43,23 +43,16 @@ This example demonstrates a few features of the library:
 -   Recursive parsers through `P(p)`, which evaluates `p` lazily
 -   Implicit lifting of functions to parsers, where `f(p1 ~ ... ~ pn)` parses `p1 ~ ... ~ pn` and applies `f(a1, ..., an)` to the results `a1, ..., an`
 
-The complete example including a test case can be seen
-[here](https://github.com/gernst/arse/blob/master/src/test/scala/arse/test/Expr.scala).
-
 Installation
 ------------
 
 Dependencies
 
-- [bk](https://github.com/gernst/bk)
-- [tst](https://github.com/gernst/tst)
 - [sourcecode](https://github.com/lihaoyi/sourcecode)
 
 Compile & Install
 
-    sbt compile
-    sbt package
-    sbt publishLocal # if you want to use it in other projects locally
+    mill arse.jar
 
 Use
 ---
@@ -77,6 +70,7 @@ Parsers `p: Parser[A]` parse a piece of text and return a result `a: A`.
 ### Constructing parsers
 
 -   `S(regex)` matches and returns part of the input against `regex`
+-   `L(string)` matches and returns part of the input against a given `string`
 -   `int`, `double`, `char`, `string`: predefined scanners for numbers, character literals `'x'` and strings `"..."` (support escaping `\'` resp `\"`)
 -   `val n: Parser[T] = P(p)` declares a recursive parser with name `n` that defers evaluation of `p` to allow forward declaration of `p`;
      works in class/object scope when `p` refers to fields, but not when `p` refers to local variables defined later
