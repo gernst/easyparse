@@ -30,13 +30,13 @@ package object arse {
   }
 
   def ret[A](a: A) = new Accept(a)
-  
+
   def L(tokens: String*) = new Literals(tokens: _*)
 
   def int = S("[+-]?[0-9]+") map {
     str => str.toInt
   }
-  
+
   def bigint = S("[+-]?[0-9]+") map {
     str => BigInt(str)
   }
@@ -68,11 +68,11 @@ package object arse {
     max: Int = Int.MaxValue)(implicit name: sourcecode.Name) = {
     Mixfix[Op, Expr](name.value, () => p, ap, s prefix_op op, s postfix_op op, s infix_op op, min, max)
   }
-  
+
   def P[A](p: => Parser[A])(implicit name: sourcecode.Name): Parser[A] = {
     new Recursive(name.value, () => p)
   }
-  
+
   trait NoStackTrace {
     this: Throwable =>
     override def fillInStackTrace = this
@@ -83,7 +83,7 @@ package object arse {
     throw Backtrack()
   }
 
-  case class Backtrack() extends Throwable /* with NoStackTrace */ {
+  case class Backtrack() extends Throwable with NoStackTrace {
     override def toString = "backtrack"
   }
 
