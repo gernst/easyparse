@@ -6,5 +6,5 @@ object arse extends ScalaModule {
   def publishVersion = "0.1.3"
 
   def ivyDeps = Agg(
-    ivy"com.lihaoyi::sourcecode:0.1.7")
+    ivy"com.lihaoyi::sourcecode:0.2.0")
 }
