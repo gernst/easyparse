@@ -9,114 +9,99 @@ import java.util.regex.Pattern
 import implicits.ListParser
 import implicits.Parser2
 
-trait Parser[+A] {
+trait Parser[+A, T] {
   p =>
 
-  def parse(in: Input, cm: Boolean): A
+  def parse(in: Input[T], cm: Boolean): Result[A, T]
 
-  def parse(in: Input): A = {
+  def parse(in: Input[T]): Result[A, T] = {
     parse(in, true)
   }
 
-  def parseAll(in: Input): A = {
-    val p = this.$
-    p.parse(in)
+  def parseAll(in0: Input[T]): A = {
+    val (a, in1) = p.parse(in0)
+    if (in1 != Nil) fail("expected end of input", in1, true)
+    else a
   }
 
-  def parseAt(pos: Int, in: Input, cm: Boolean): A = {
-    in.position = pos
-    parse(in, cm)
-  }
+  def ~[B](t: T): Parser[A, T] = p <~ new Literal(t)
+  def ~[B](q: Parser[B, T]): Parser[A ~ B, T] =
+    new Sequence(p, q, strict = true)
+  def ?~[B](t: T): Parser[A, T] = p ?<~ new Literal(t)
+  def ?~[B](q: Parser[B, T]): Parser[A ~ B, T] =
+    new Sequence(p, q, strict = false)
 
-  def $ = new End(this)
-  def ~[B](s: String): Parser[A] = p <~ new Literal(s)
-  def ~[B](q: Parser[B]): Parser[A ~ B] = new Sequence(p, q, strict = true)
-  def ?~[B](s: String): Parser[A] = p ?<~ new Literal(s)
-  def ?~[B](q: Parser[B]): Parser[A ~ B] = new Sequence(p, q, strict = false)
+  def <~[B](q: Parser[B, T]): Parser[A, T] = (p ~ q)._1
+  def ~>[B](q: Parser[B, T]): Parser[B, T] = (p ~ q)._2
+  def ?<~[B](q: Parser[B, T]): Parser[A, T] = (p ?~ q)._1
+  def ?~>[B](q: Parser[B, T]): Parser[B, T] = (p ?~ q)._2
 
-  def <~[B](q: Parser[B]): Parser[A] = (p ~ q)._1
-  def ~>[B](q: Parser[B]): Parser[B] = (p ~ q)._2
-  def ?<~[B](q: Parser[B]): Parser[A] = (p ?~ q)._1
-  def ?~>[B](q: Parser[B]): Parser[B] = (p ?~ q)._2
+  def |[B >: A](q: Parser[B, T]): Parser[B, T] = new Choice(p, q)
+  def map[B](f: A => B): Parser[B, T] = new Attribute(p, f, partial = false)
+  def collect[B](f: A => B): Parser[B, T] = new Attribute(p, f, partial = true)
 
-  def |[B >: A](q: Parser[B]): Parser[B] = new Choice(p, q)
-  def map[B](f: A => B): Parser[B] = new Attribute(p, f, partial = false)
-  def collect[B](f: A => B): Parser[B] = new Attribute(p, f, partial = true)
-
-  def ?(): Parser[Option[A]] = new Repeat(p, 0, 1) map {
-    case List() => None
+  def ?(): Parser[Option[A], T] = new Repeat(p, 0, 1) map {
+    case List()  => None
     case List(a) => Some(a)
   }
 
-  def *(): Parser[List[A]] = new Repeat(p, 0, Int.MaxValue)
-  def +(): Parser[List[A]] = new Repeat(p, 1, Int.MaxValue)
+  def *(): Parser[List[A], T] = new Repeat(p, 0, Int.MaxValue)
+  def +(): Parser[List[A], T] = new Repeat(p, 1, Int.MaxValue)
 
-  def ~*(sep: String): Parser[List[A]] = p :: (sep ~ p).* | ret(Nil)
-  def ~*(sep: Parser[_]): Parser[List[A]] = p :: (sep ~> p).* | ret(Nil)
+  def ~*(sep: T): Parser[List[A], T] = p :: (sep ~ p).* | ret(Nil)
+  def ~*(sep: Parser[_, T]): Parser[List[A], T] = p :: (sep ~> p).* | ret(Nil)
 
-  def ~+(sep: String): Parser[List[A]] = p :: (sep ~ p).*
-  def ~+(sep: Parser[_]): Parser[List[A]] = p :: (sep ~> p).*
+  def ~+(sep: T): Parser[List[A], T] = p :: (sep ~ p).*
+  def ~+(sep: Parser[_, T]): Parser[List[A], T] = p :: (sep ~> p).*
 
-  def filter(f: A => Boolean): Parser[A] = new Filter(p, f)
-  def filterNot(f: A => Boolean): Parser[A] = new Filter(p, (a: A) => !f(a))
-  def reduceLeft[B >: A](f: (B, A) => B): Parser[B] = p.+ map (_ reduceLeft f)
-  def reduceRight[B >: A](f: (A, B) => B): Parser[B] = p.+ map (_ reduceRight f)
-  def foldLeft[B](z: => Parser[B])(f: (B, A) => B): Parser[B] = (z ~ p.*) map { case b ~ as => as.foldLeft(b)(f) }
-  def foldRight[B](z: => Parser[B])(f: (A, B) => B): Parser[B] = (p.* ~ z) map { case as ~ b => as.foldRight(b)(f) }
+  def filter(f: A => Boolean): Parser[A, T] = new Filter(p, f)
+  def filterNot(f: A => Boolean): Parser[A, T] = new Filter(p, (a: A) => !f(a))
+  def reduceLeft[B >: A](f: (B, A) => B): Parser[B, T] =
+    p.+ map (_ reduceLeft f)
+  def reduceRight[B >: A](f: (A, B) => B): Parser[B, T] =
+    p.+ map (_ reduceRight f)
+  def foldLeft[B](z: => Parser[B, T])(f: (B, A) => B): Parser[B, T] =
+    (z ~ p.*) map { case b ~ as => as.foldLeft(b)(f) }
+  def foldRight[B](z: => Parser[B, T])(f: (A, B) => B): Parser[B, T] =
+    (p.* ~ z) map { case as ~ b => as.foldRight(b)(f) }
 }
 
-class Recursive[A](name: String, p: () => Parser[A]) extends Parser[A] {
-  def parse(in: Input, cm: Boolean) = p() parse (in, cm)
+class Recursive[A, T](name: String, p: () => Parser[A, T])
+    extends Parser[A, T] {
+  def parse(in: Input[T], cm: Boolean) = p() parse (in, cm)
   override def toString = name
 }
 
-case object Fail extends Parser[Nothing] {
-  def parse(in: Input, cm: Boolean) = fail("unexpected input", in, cm)
+case object Fail extends Parser[Nothing, Any] {
+  def parse(in: Input[Any], cm: Boolean) = fail("unexpected Input[T]", in, cm)
   override def toString = "fail"
 }
 
-class Accept[+A](a: A) extends Parser[A] {
-  def parse(in: Input, cm: Boolean) = a
+class Accept[+A, T](a: A) extends Parser[A, T] {
+  def parse(in: Input[T], cm: Boolean) = (a, in)
   override def toString = "accept"
 }
 
-class End[+A](p: Parser[A]) extends Parser[A] {
-  def parse(in: Input, cm: Boolean) = {
-    val a = p parse (in, cm)
-    if (!in.isEmpty) fail("expected end of input", in, cm)
-    a
-  }
-
-  override def toString = {
-    "end"
-  }
-}
-
-class Literal(token: String) extends Parser[String] {
-  def parse(in: Input, cm: Boolean) = {
-    if (in.text.startsWith(token, in.position)) {
-      in advanceBy token.length
-      token
+class Literal[T](token: T) extends Parser[T, T] {
+  def parse(in0: Input[T], cm: Boolean) = {
+    if (!in0.isEmpty && token == in0.head) {
+      (token, in0.tail)
     } else {
-      fail("expected " + token, in, cm)
+      fail("expected " + this, in0, cm)
     }
   }
 
   override def toString = {
-    token
+    token.toString
   }
 }
 
-class Literals(tokens: String*) extends Parser[String] {
-  def parse(in: Input, cm: Boolean) = {
-    val token = tokens.find(in.text.startsWith(_, in.position))
-
-    token match {
-      case Some(token) =>
-        in advanceBy token.length
-        token
-      case None =>
-        fail("expected " + token, in, cm)
+class Literals[T](tokens: T*) extends Parser[T, T] {
+  def parse(in0: Input[T], cm: Boolean) = {
+    if (!in0.isEmpty && (tokens contains in0.head)) {
+      (in0.head, in0.tail)
+    } else {
+      fail("expected " + this, in0, cm)
     }
   }
 
@@ -125,56 +110,12 @@ class Literals(tokens: String*) extends Parser[String] {
   }
 }
 
-class Regex(name: String, pattern: String) extends Parser[String] {
-  val regex = Pattern.compile(pattern)
-  val matcher = regex.matcher("")
-
-  def matches(text: String, pos: Int) = {
-    matcher.reset(text)
-    matcher.region(pos, text.length)
-    // print("match " + pattern + " at '" + text.substring(pos) + "' ")
-
-    if (matcher.lookingAt()) {
-      val end = matcher.end
-      // println()
-      // println("remaining input '" + text.substring(end) + "'")
-      Some(end)
-    } else {
-      // println("failed")
-      None
-    }
-  }
-
-  def parse(in: Input, cm: Boolean) = {
-    matcher.reset(in.text)
-    matcher.region(in.position, in.text.length)
-
-    matches(in.text, in.position) match {
-      case Some(next) =>
-        in advanceTo next
-        matcher.group()
-      case None =>
-        fail("expected " + name, in, cm)
-    }
-  }
-
-  override def toString = {
-    name
-  }
-}
-
-class Whitespace(pattern: String) extends Regex(" ", pattern) {
-}
-
-object Whitespace {
-  val default = new Whitespace("\\s*")
-}
-
-class Sequence[+A, +B](p: Parser[A], q: Parser[B], strict: Boolean) extends Parser[A ~ B] {
-  def parse(in: Input, cm: Boolean) = {
-    val a = p parse (in, cm)
-    val b = q parse (in, strict)
-    (a, b)
+class Sequence[+A, +B, T](p: Parser[A, T], q: Parser[B, T], strict: Boolean)
+    extends Parser[A ~ B, T] {
+  def parse(in0: Input[T], cm: Boolean) = {
+    val (a, in1) = p parse (in0, cm)
+    val (b, in2) = q parse (in1, strict)
+    ((a, b), in2)
   }
 
   override def toString = {
@@ -183,14 +124,12 @@ class Sequence[+A, +B](p: Parser[A], q: Parser[B], strict: Boolean) extends Pars
   }
 }
 
-class Choice[+A](p: Parser[A], q: Parser[A]) extends Parser[A] {
-  def parse(in: Input, cm: Boolean) = {
-    val pos = in.position
-
+class Choice[+A, T](p: Parser[A, T], q: Parser[A, T]) extends Parser[A, T] {
+  def parse(in: Input[T], cm: Boolean) = {
     {
-      p parseAt (pos, in, false)
+      p parse (in, false)
     } or {
-      q parseAt (pos, in, cm)
+      q parse (in, cm)
     }
   }
 
@@ -199,29 +138,26 @@ class Choice[+A](p: Parser[A], q: Parser[A]) extends Parser[A] {
   }
 }
 
-class Repeat[+A](p: Parser[A], min: Int, max: Int) extends Parser[List[A]] {
-  def parse(in: Input, cm: Boolean): List[A] = {
+class Repeat[+A, T](p: Parser[A, T], min: Int, max: Int)
+    extends Parser[List[A], T] {
+  def parse(in: Input[T], cm: Boolean): Result[List[A], T] = {
     parse(0, in, cm)
   }
 
-  def parse(done: Int, in: Input, cm: Boolean): List[A] = {
-    val pos = in.position
-
+  def parse(done: Int, in0: Input[T], cm: Boolean): Result[List[A], T] = {
     if (done < min) {
-      val a = p parse (in, cm)
-      val as = this parse (done + 1, in, cm)
-      a :: as
-    } else if (done < max)
-      {
-        val a = p parse (in, false)
-        val as = this parse (done + 1, in, cm)
-        a :: as
-      } or {
-        in.position = pos
-        Nil
-      }
+      val (a, in1) = p parse (in0, cm)
+      val (as, in2) = this parse (done + 1, in1, cm)
+      (a :: as, in2)
+    } else if (done < max) {
+      val (a, in1) = p parse (in0, false)
+      val (as, in2) = this parse (done + 1, in1, cm)
+      (a :: as, in2)
+    } or {
+      (Nil, in0)
+    }
     else {
-      Nil
+      (Nil, in0)
     }
   }
 
@@ -233,14 +169,20 @@ class Repeat[+A](p: Parser[A], min: Int, max: Int) extends Parser[List[A]] {
   }
 }
 
-class Attribute[A, +B](p: Parser[A], f: A => B, partial: Boolean) extends Parser[B] {
-  def parse(in: Input, cm: Boolean) = f match {
+class Attribute[A, +B, T](p: Parser[A, T], f: A => B, partial: Boolean)
+    extends Parser[B, T] {
+  def parse(in0: Input[T], cm: Boolean) = f match {
     case f: PartialFunction[A, B] if partial =>
-      val a = p parse (in, cm)
-      f.applyOrElse(a, fail("expected " + p + " (partial attribute)", in, cm))
+      val (a, in1) = p parse (in0, cm)
+      val b = f.applyOrElse(
+        a,
+        fail("expected " + p + " (partial attribute)", in0, cm)
+      )
+      (b, in1)
     case _ =>
-      val a = p parse (in, cm)
-      f(a)
+      val (a, in1) = p parse (in0, cm)
+      val b = f(a)
+      (b, in1)
   }
 
   override def toString = {
@@ -248,11 +190,11 @@ class Attribute[A, +B](p: Parser[A], f: A => B, partial: Boolean) extends Parser
   }
 }
 
-case class Filter[A](p: Parser[A], f: A => Boolean) extends Parser[A] {
-  def parse(in: Input, cm: Boolean) = {
-    val a = p parse (in, cm)
-    if (!f(a)) fail("expected " + p + " (test failed)", in, cm)
-    else a
+case class Filter[A, T](p: Parser[A, T], f: A => Boolean) extends Parser[A, T] {
+  def parse(in0: Input[T], cm: Boolean) = {
+    val (a, in1) = p parse (in0, cm)
+    if (!f(a)) fail("expected " + p + " (test failed)", in0, cm)
+    else (a, in1)
   }
 
   override def toString = {

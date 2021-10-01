@@ -8,20 +8,19 @@ package object arse {
   type ~[+A, +B] = Tuple2[A, B]
   val ~ = Tuple2
 
-  implicit def input(text: String)(implicit w: Whitespace) = {
-    new Input(text, 0, w)
+  type Result[+A, T] = (A, Input[T])
+  type Input[T] = Seq[T]
+
+  implicit class toLit[T](t: T) {
+    def ~[A](q: Parser[A, T]) = new Literal(t) ~> q
+    def ?~[A](q: Parser[A, T]) = new Literal(t) ?~> q
   }
 
-  implicit class toLit(s: String) {
-    def ~[A](q: Parser[A]) = new Literal(s) ~> q
-    def ?~[A](q: Parser[A]) = new Literal(s) ?~> q
+  case class Error(msg: String, in: Input[_]) extends Exception {
+    override def toString = msg + " at '" + (in take 32) + "...'"
   }
 
-  case class Error(msg: String, in: Input) extends Exception {
-    override def toString = msg + " at '" + (in.rest take 32) + "...'"
-  }
-
-  def fail(msg: String, in: Input, cm: Boolean, cause: Throwable = null) = {
+  def fail(msg: String, in: Input[_], cm: Boolean, cause: Throwable = null) = {
     if (cm) {
       throw Error(msg, in) initCause cause
     } else {
@@ -29,11 +28,11 @@ package object arse {
     }
   }
 
-  def ret[A](a: A) = new Accept(a)
+  def ret[A, T](a: A) = new Accept[A, T](a)
 
-  def L(tokens: String*) = new Literals(tokens: _*)
+  def L[T](tokens: T*) = new Literals(tokens: _*)
 
-  def int = S("[+-]?[0-9]+") map {
+  /* def int = S("[+-]?[0-9]+") map {
     str => str.toInt
   }
 
@@ -67,9 +66,11 @@ package object arse {
     min: Int = Int.MinValue,
     max: Int = Int.MaxValue)(implicit name: sourcecode.Name) = {
     Mixfix[Op, Expr](name.value, () => p, ap, s prefix_op op, s postfix_op op, s infix_op op, min, max)
-  }
+  } */
 
-  def P[A](p: => Parser[A])(implicit name: sourcecode.Name): Parser[A] = {
+  def P[A, T](
+      p: => Parser[A, T]
+  )(implicit name: sourcecode.Name): Parser[A, T] = {
     new Recursive(name.value, () => p)
   }
 
