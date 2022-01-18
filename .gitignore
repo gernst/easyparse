@@ -2,4 +2,11 @@
 .cache-main
 .cache-tests
 .settings
-/bin
+.bloop/
+.classpath
+.metals/
+.scalafmt.conf
+.vscode/
+out/
+bin/
+arse/src/arse/Scanner.scala_

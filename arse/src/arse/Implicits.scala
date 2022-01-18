@@ -1,15 +1,15 @@
 // ARSE Parser libary
-// (c) 2020 Gidon Ernst <gidonernst@gmail.com>
+// (c) 2022 Gidon Ernst <gidonernst@gmail.com>
 // This code is licensed under MIT license (see LICENSE for details)
 
 package arse
 
 object implicits {
-  implicit class Parser0[R, T](f: => R) {
-    def apply(t: T): Parser[R, T] = {
-      new Literal(t) map { _ => f }
-    }
-  }
+  // implicit class Parser0[R, T](f: => R) {
+  //   def apply(t: T): Parser[R, T] = {
+  //     new Literal(t) map { _ => f }
+  //   }
+  // }
 
   implicit class Apply1[A, R, T](f: A => R) {
     def apply(p: Parser[A, T]): Parser[R, T] = {

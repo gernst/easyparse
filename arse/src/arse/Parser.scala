@@ -1,5 +1,5 @@
 // ARSE Parser libary
-// (c) 2020 Gidon Ernst <gidonernst@gmail.com>
+// (c) 2022 Gidon Ernst <gidonernst@gmail.com>
 // This code is licensed under MIT license (see LICENSE for details)
 
 package arse
@@ -24,38 +24,39 @@ trait Parser[+A, T] {
     else a
   }
 
-  def ~[B](t: T): Parser[A, T] = p <~ new Literal(t)
   def ~[B](q: Parser[B, T]): Parser[A ~ B, T] =
-    new Sequence(p, q, strict = true)
-  def ?~[B](t: T): Parser[A, T] = p ?<~ new Literal(t)
+    new Sequence.ParserParser(p, q, strict = true)
+  def ~(q: Scanner[T]): Parser[A, T] =
+    new Sequence.ParserScanner(p, q, strict = true)
+
   def ?~[B](q: Parser[B, T]): Parser[A ~ B, T] =
-    new Sequence(p, q, strict = false)
+    new Sequence.ParserParser(p, q, strict = false)
+  def ?~(q: Scanner[T]): Parser[A, T] =
+    new Sequence.ParserScanner(p, q, strict = false)
 
   def <~[B](q: Parser[B, T]): Parser[A, T] = (p ~ q)._1
   def ~>[B](q: Parser[B, T]): Parser[B, T] = (p ~ q)._2
   def ?<~[B](q: Parser[B, T]): Parser[A, T] = (p ?~ q)._1
   def ?~>[B](q: Parser[B, T]): Parser[B, T] = (p ?~ q)._2
 
-  def |[B >: A](q: Parser[B, T]): Parser[B, T] = new Choice(p, q)
-  def map[B](f: A => B): Parser[B, T] = new Attribute(p, f, partial = false)
-  def collect[B](f: A => B): Parser[B, T] = new Attribute(p, f, partial = true)
+  def |[B >: A](q: Parser[B, T]): Parser[B, T] = Parser.Choice(p, q)
+  def map[B](f: A => B): Parser[B, T] = Parser.Reduce(p, f, partial = false)
+  def collect[B](f: A => B): Parser[B, T] = Parser.Reduce(p, f, partial = true)
 
-  def ?(): Parser[Option[A], T] = new Repeat(p, 0, 1) map {
+  def ?(): Parser[Option[A], T] = Parser.Repeat(p, 0, 1) map {
     case List()  => None
     case List(a) => Some(a)
   }
 
-  def *(): Parser[List[A], T] = new Repeat(p, 0, Int.MaxValue)
-  def +(): Parser[List[A], T] = new Repeat(p, 1, Int.MaxValue)
-
-  def ~*(sep: T): Parser[List[A], T] = p :: (sep ~ p).* | ret(Nil)
+  def *(): Parser[List[A], T] = Parser.Repeat(p, 0, Int.MaxValue)
+  def +(): Parser[List[A], T] = Parser.Repeat(p, 1, Int.MaxValue)
   def ~*(sep: Parser[_, T]): Parser[List[A], T] = p :: (sep ~> p).* | ret(Nil)
-
-  def ~+(sep: T): Parser[List[A], T] = p :: (sep ~ p).*
   def ~+(sep: Parser[_, T]): Parser[List[A], T] = p :: (sep ~> p).*
 
-  def filter(f: A => Boolean): Parser[A, T] = new Filter(p, f)
-  def filterNot(f: A => Boolean): Parser[A, T] = new Filter(p, (a: A) => !f(a))
+  def filter(f: A => Boolean): Parser[A, T] = Parser.Filter(p, f)
+  def filterNot(f: A => Boolean): Parser[A, T] =
+    Parser.Filter(p, (a: A) => !f(a))
+
   def reduceLeft[B >: A](f: (B, A) => B): Parser[B, T] =
     p.+ map (_ reduceLeft f)
   def reduceRight[B >: A](f: (A, B) => B): Parser[B, T] =
@@ -66,138 +67,112 @@ trait Parser[+A, T] {
     (p.* ~ z) map { case as ~ b => as.foldRight(b)(f) }
 }
 
-class Recursive[A, T](name: String, p: () => Parser[A, T])
-    extends Parser[A, T] {
-  def parse(in: Input[T], cm: Boolean) = p() parse (in, cm)
-  override def toString = name
-}
+object Parser {
+  case class Recursive[A, T](name: String, p: () => Parser[A, T])
+      extends Parser[A, T] {
+    def parse(in: Input[T], cm: Boolean) = p() parse (in, cm)
+    override def toString = name
+  }
 
-case object Fail extends Parser[Nothing, Any] {
-  def parse(in: Input[Any], cm: Boolean) = fail("unexpected Input[T]", in, cm)
-  override def toString = "fail"
-}
+  case object Fail extends Parser[Nothing, Any] {
+    def parse(in: Input[Any], cm: Boolean) = fail("unexpected input", in, cm)
+    override def toString = "fail"
+  }
 
-class Accept[+A, T](a: A) extends Parser[A, T] {
-  def parse(in: Input[T], cm: Boolean) = (a, in)
-  override def toString = "accept"
-}
+  case class Accept[+A, T](a: A) extends Parser[A, T] {
+    def parse(in: Input[T], cm: Boolean) = (a, in)
+    override def toString = "accept"
+  }
 
-class Literal[T](token: T) extends Parser[T, T] {
-  def parse(in0: Input[T], cm: Boolean) = {
-    if (!in0.isEmpty && token == in0.head) {
-      (token, in0.tail)
-    } else {
-      fail("expected " + this, in0, cm)
+  case class Shift[T]() extends Parser[T, T] {
+    def parse(in: Input[T], cm: Boolean) = {
+      if (in.nonEmpty) {
+        (in.head, in.tail)
+      } else {
+        fail("unexpected end of input", in, cm)
+      }
+    }
+
+    override def toString = "token"
+  }
+
+  case class Choice[+A, T](p: Parser[A, T], q: Parser[A, T])
+      extends Parser[A, T] {
+    def parse(in: Input[T], cm: Boolean) = {
+      {
+        p parse (in, false)
+      } or {
+        q parse (in, cm)
+      }
+    }
+
+    override def toString = {
+      "(" + p + " | " + q + ")"
     }
   }
 
-  override def toString = {
-    token.toString
-  }
-}
+  case class Repeat[+A, T](p: Parser[A, T], min: Int, max: Int)
+      extends Parser[List[A], T] {
+    def parse(in: Input[T], cm: Boolean): Result[List[A], T] = {
+      parse(0, in, cm)
+    }
 
-class Literals[T](tokens: T*) extends Parser[T, T] {
-  def parse(in0: Input[T], cm: Boolean) = {
-    if (!in0.isEmpty && (tokens contains in0.head)) {
-      (in0.head, in0.tail)
-    } else {
-      fail("expected " + this, in0, cm)
+    def parse(done: Int, in0: Input[T], cm: Boolean): Result[List[A], T] = {
+      if (done < min) {
+        val (a, in1) = p parse (in0, cm)
+        val (as, in2) = this parse (done + 1, in1, cm)
+        (a :: as, in2)
+      } else if (done < max) {
+        val (a, in1) = p parse (in0, false)
+        val (as, in2) = this parse (done + 1, in1, cm)
+        (a :: as, in2)
+      } or {
+        (Nil, in0)
+      }
+      else {
+        (Nil, in0)
+      }
+    }
+
+    override def toString = {
+      if (min == 0 && max == 1) "(" + p + ") ?"
+      else if (min == 0 && max == Int.MaxValue) "(" + p + ") *"
+      else if (min == 1 && max == Int.MaxValue) "(" + p + ") +"
+      else "(" + p + ") {" + min + "," + max + "}"
     }
   }
 
-  override def toString = {
-    tokens.mkString(" | ")
-  }
-}
+  case class Reduce[A, +B, T](p: Parser[A, T], f: A => B, partial: Boolean)
+      extends Parser[B, T] {
+    def parse(in0: Input[T], cm: Boolean) = f match {
+      case f: PartialFunction[A, B] if partial =>
+        val (a, in1) = p parse (in0, cm)
+        val b = f.applyOrElse(
+          a,
+          fail("expected " + p + " (partial attribute)", in0, cm)
+        )
+        (b, in1)
+      case _ =>
+        val (a, in1) = p parse (in0, cm)
+        val b = f(a)
+        (b, in1)
+    }
 
-class Sequence[+A, +B, T](p: Parser[A, T], q: Parser[B, T], strict: Boolean)
-    extends Parser[A ~ B, T] {
-  def parse(in0: Input[T], cm: Boolean) = {
-    val (a, in1) = p parse (in0, cm)
-    val (b, in2) = q parse (in1, strict)
-    ((a, b), in2)
-  }
-
-  override def toString = {
-    if (strict) "(" + p + " ~ " + q + ")"
-    else "(" + p + " ~? " + q + ")"
-  }
-}
-
-class Choice[+A, T](p: Parser[A, T], q: Parser[A, T]) extends Parser[A, T] {
-  def parse(in: Input[T], cm: Boolean) = {
-    {
-      p parse (in, false)
-    } or {
-      q parse (in, cm)
+    override def toString = {
+      p.toString
     }
   }
 
-  override def toString = {
-    "(" + p + " | " + q + ")"
-  }
-}
-
-class Repeat[+A, T](p: Parser[A, T], min: Int, max: Int)
-    extends Parser[List[A], T] {
-  def parse(in: Input[T], cm: Boolean): Result[List[A], T] = {
-    parse(0, in, cm)
-  }
-
-  def parse(done: Int, in0: Input[T], cm: Boolean): Result[List[A], T] = {
-    if (done < min) {
+  case class Filter[A, T](p: Parser[A, T], f: A => Boolean)
+      extends Parser[A, T] {
+    def parse(in0: Input[T], cm: Boolean) = {
       val (a, in1) = p parse (in0, cm)
-      val (as, in2) = this parse (done + 1, in1, cm)
-      (a :: as, in2)
-    } else if (done < max) {
-      val (a, in1) = p parse (in0, false)
-      val (as, in2) = this parse (done + 1, in1, cm)
-      (a :: as, in2)
-    } or {
-      (Nil, in0)
+      if (!f(a)) fail("expected " + p + " (test failed)", in0, cm)
+      else (a, in1)
     }
-    else {
-      (Nil, in0)
+
+    override def toString = {
+      p.toString
     }
-  }
-
-  override def toString = {
-    if (min == 0 && max == 1) "(" + p + ") ?"
-    else if (min == 0 && max == Int.MaxValue) "(" + p + ") *"
-    else if (min == 1 && max == Int.MaxValue) "(" + p + ") +"
-    else "(" + p + ") {" + min + "," + max + "}"
-  }
-}
-
-class Attribute[A, +B, T](p: Parser[A, T], f: A => B, partial: Boolean)
-    extends Parser[B, T] {
-  def parse(in0: Input[T], cm: Boolean) = f match {
-    case f: PartialFunction[A, B] if partial =>
-      val (a, in1) = p parse (in0, cm)
-      val b = f.applyOrElse(
-        a,
-        fail("expected " + p + " (partial attribute)", in0, cm)
-      )
-      (b, in1)
-    case _ =>
-      val (a, in1) = p parse (in0, cm)
-      val b = f(a)
-      (b, in1)
-  }
-
-  override def toString = {
-    p.toString
-  }
-}
-
-case class Filter[A, T](p: Parser[A, T], f: A => Boolean) extends Parser[A, T] {
-  def parse(in0: Input[T], cm: Boolean) = {
-    val (a, in1) = p parse (in0, cm)
-    if (!f(a)) fail("expected " + p + " (test failed)", in0, cm)
-    else (a, in1)
-  }
-
-  override def toString = {
-    p.toString
   }
 }
