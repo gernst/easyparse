@@ -5,11 +5,13 @@
 package arse
 
 object implicits {
-  // implicit class Parser0[R, T](f: => R) {
-  //   def apply(t: T): Parser[R, T] = {
-  //     new Literal(t) map { _ => f }
-  //   }
-  // }
+  implicit def toKW(name: String) = KW(name)
+
+  implicit class Apply0[R, T](f: R) {
+    def apply(p: Scanner[T]): Parser[R, T] = {
+      p ~ ret(f)
+    }
+  }
 
   implicit class Apply1[A, R, T](f: A => R) {
     def apply(p: Parser[A, T]): Parser[R, T] = {

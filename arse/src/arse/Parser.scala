@@ -8,6 +8,7 @@ import java.util.regex.Pattern
 
 import implicits.ListParser
 import implicits.Parser2
+import scala.util.DynamicVariable
 
 trait Parser[+A, T] {
   p =>
@@ -41,7 +42,7 @@ trait Parser[+A, T] {
 
   def |[B >: A](q: Parser[B, T]): Parser[B, T] = Parser.Choice(p, q)
   def map[B](f: A => B): Parser[B, T] = Parser.Reduce(p, f, partial = false)
-  def collect[B](f: A => B): Parser[B, T] = Parser.Reduce(p, f, partial = true)
+  def collect[B](f: PartialFunction[A, B]): Parser[B, T] = Parser.Reduce(p, f, partial = true)
 
   def ?(): Parser[Option[A], T] = Parser.Repeat(p, 0, 1) map {
     case List()  => None
@@ -50,8 +51,8 @@ trait Parser[+A, T] {
 
   def *(): Parser[List[A], T] = Parser.Repeat(p, 0, Int.MaxValue)
   def +(): Parser[List[A], T] = Parser.Repeat(p, 1, Int.MaxValue)
-  def ~*(sep: Parser[_, T]): Parser[List[A], T] = p :: (sep ~> p).* | ret(Nil)
-  def ~+(sep: Parser[_, T]): Parser[List[A], T] = p :: (sep ~> p).*
+  def ~*(sep: Scanner[T]): Parser[List[A], T] = p :: (sep ~ p).* | ret(Nil)
+  def ~+(sep: Scanner[T]): Parser[List[A], T] = p :: (sep ~ p).*
 
   def filter(f: A => Boolean): Parser[A, T] = Parser.Filter(p, f)
   def filterNot(f: A => Boolean): Parser[A, T] =
@@ -149,7 +150,7 @@ object Parser {
         val (a, in1) = p parse (in0, cm)
         val b = f.applyOrElse(
           a,
-          fail("expected " + p + " (partial attribute)", in0, cm)
+          fail("expected " + p + " (partial attribute)", in1, cm)
         )
         (b, in1)
       case _ =>
@@ -169,6 +170,19 @@ object Parser {
       val (a, in1) = p parse (in0, cm)
       if (!f(a)) fail("expected " + p + " (test failed)", in0, cm)
       else (a, in1)
+    }
+
+    override def toString = {
+      p.toString
+    }
+  }
+
+  case class Scoped[A, B, T](p: Parser[A, T], state: DynamicVariable[B])
+      extends Parser[A, T] {
+    def parse(in0: Input[T], cm: Boolean) = {
+      state.withValue(state.value) {
+        p.parse(in0, cm)
+      }
     }
 
     override def toString = {

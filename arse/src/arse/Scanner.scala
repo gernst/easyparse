@@ -13,6 +13,9 @@ trait Scanner[T] {
 
   def scan(in: Input[T], cm: Boolean): Input[T]
 
+  def |(that: Scanner[T]) =
+    new Scanner.Choice(this, that)
+
   def ~[B](q: Parser[B, T]): Parser[B, T] =
     new Sequence.ScannerParser(p, q, strict = true)
   def ~(q: Scanner[T]): Scanner[T] =
@@ -40,22 +43,34 @@ object Scanner {
   }
 
   case class Value[A](name: String) extends Parser[A, Token] {
-    self =>
-
-    case class Result[+A](a: A) extends Token
+    case class Result(a: A) extends Token
     def apply(a: A) = Result(a)
 
     def parse(in: Input[Token], cm: Boolean) = {
       if (in.nonEmpty) {
         in.head match {
-          case self.Result(a: A) =>
+          case Result(a) =>
             (a, in.tail)
           case _ =>
-            fail("expected keyword: '" + name + "'", in, cm)
+            fail("expected value-token: '" + name + "'", in, cm)
         }
       } else {
         fail("unexpected end of input", in, cm)
       }
+    }
+  }
+
+  case class Choice[T](p: Scanner[T], q: Scanner[T]) extends Scanner[T] {
+    def scan(in: Input[T], cm: Boolean) = {
+      {
+        p scan (in, false)
+      } or {
+        q scan (in, cm)
+      }
+    }
+
+    override def toString = {
+      "(" + p + " | " + q + ")"
     }
   }
 }

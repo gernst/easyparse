@@ -35,13 +35,13 @@ trait Syntax[Op, T] {
   }
 
   def prefix_op(op: Parser[Op, T]) = op map { n =>
-    (n, prefix_ops.getOrElse(n, backtrack()))
+    (n, prefix_ops.getOrElse(n, backtrack("prefix operator expected")))
   }
   def postfix_op(op: Parser[Op, T]) = op map { n =>
-    (n, postfix_ops.getOrElse(n, backtrack()))
+    (n, postfix_ops.getOrElse(n, backtrack("postfix operator expected")))
   }
   def infix_op(op: Parser[Op, T]) = op map { n =>
-    (n, infix_ops.getOrElse(n, backtrack()))
+    (n, infix_ops.getOrElse(n, backtrack("infix operator expected")))
   }
 }
 
@@ -69,7 +69,7 @@ case class Mixfix[Op, Expr, T](
 
   def prefix_app(lower: Int, in0: Input[T], cm: Boolean) = {
     val ((op, prec), in1) = prefix_op parse (in0, false)
-    if (prec < lower) backtrack()
+    if (prec < lower) backtrack("prefix operator of precedence >= " + lower + " expected")
     val (right, in2) = mixfix_app(prec, in1, true)
     val result = unary(op, right)
     (result, in1)
@@ -83,7 +83,7 @@ case class Mixfix[Op, Expr, T](
       cm: Boolean
   ) = {
     val ((op, prec), in1) = postfix_op parse (in0, false)
-    if (prec < lower || upper < prec) backtrack()
+    if (prec < lower || upper < prec) backtrack("postfix operator of precedence >= " + lower + " and <= " + upper + " expected")
     postinfix_app(lower, prec, unary(op, left), in1, true)
   }
 
@@ -95,7 +95,7 @@ case class Mixfix[Op, Expr, T](
       cm: Boolean
   ) = {
     val ((op, (assoc, prec)), in1) = infix_op parse (in0, false)
-    if (prec < lower || upper < prec) backtrack()
+    if (prec < lower || upper < prec) backtrack("infix operator of precedence >= " + lower + " and <= " + upper + " expected")
     val (right, in2) = mixfix_app(rprec(assoc, prec), in1, true)
     postinfix_app(lower, nprec(assoc, prec), binary(op, left, right), in2, cm)
   }

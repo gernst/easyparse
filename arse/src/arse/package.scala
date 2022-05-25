@@ -19,7 +19,7 @@ package object arse {
     if (cm) {
       throw Error(msg, in) initCause cause
     } else {
-      backtrack()
+      backtrack(msg)
     }
   }
 
@@ -28,15 +28,20 @@ package object arse {
   def tok[T] =
     new Parser.Shift[T]()
 
+  def map[T, A](f: T => A) =
+    tok map f
+  def collect[T, A](f: PartialFunction[T, A]) =
+    tok collect f
+
   def KW(name: String) =
     new Scanner.Keyword(name)
   def KW(implicit name: sourcecode.Name) =
     new Scanner.Keyword(name.value)
 
-  def V(name: String) =
-    new Scanner.Value(name)
-  def V(implicit name: sourcecode.Name) =
-    new Scanner.Value(name.value)
+  def V[A](name: String) =
+    new Scanner.Value[A](name)
+  def V[A](implicit name: sourcecode.Name) =
+    new Scanner.Value[A](name.value)
 
   def P[A, T](
       p: => Parser[A, T]
@@ -70,12 +75,12 @@ package object arse {
     override val getStackTrace = Array[StackTraceElement]()
   }
 
-  def backtrack() = {
-    throw Backtrack()
+  def backtrack(message: String) = {
+    throw Backtrack(message)
   }
 
-  case class Backtrack() extends Throwable with NoStackTrace {
-    override def toString = "backtrack"
+  case class Backtrack(message: String) extends Throwable /* with NoStackTrace */ {
+    override def toString = message
   }
 
   implicit class Control[A](first: => A) {
@@ -83,7 +88,7 @@ package object arse {
       try {
         first
       } catch {
-        case Backtrack() =>
+        case Backtrack(_) =>
           second
       }
     }
