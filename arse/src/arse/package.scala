@@ -10,6 +10,7 @@ package object arse {
 
   type Result[+A, T] = (A, Input[T])
   type Input[T] = Seq[T]
+  type Scope[K,V] = Parser.Scope[K,V]
 
   case class Error(msg: String, in: Input[_]) extends Exception {
     override def toString = msg + " at '" + (in take 32) + "...'"
@@ -38,10 +39,13 @@ package object arse {
   def KW(implicit name: sourcecode.Name) =
     new Scanner.Keyword(name.value)
 
+  def S[K, V](init: Map[K, V] = Map.empty) =
+    new Parser.Scope[K, V](init)
+
   def V[A](name: String) =
-    new Scanner.Value[A](name)
+    new Parser.Value[A](name)
   def V[A](implicit name: sourcecode.Name) =
-    new Scanner.Value[A](name.value)
+    new Parser.Value[A](name.value)
 
   def P[A, T](
       p: => Parser[A, T]
@@ -79,7 +83,8 @@ package object arse {
     throw Backtrack(message)
   }
 
-  case class Backtrack(message: String) extends Throwable /* with NoStackTrace */ {
+  case class Backtrack(message: String)
+      extends Throwable /* with NoStackTrace */ {
     override def toString = message
   }
 

@@ -42,7 +42,8 @@ trait Parser[+A, T] {
 
   def |[B >: A](q: Parser[B, T]): Parser[B, T] = Parser.Choice(p, q)
   def map[B](f: A => B): Parser[B, T] = Parser.Reduce(p, f, partial = false)
-  def collect[B](f: PartialFunction[A, B]): Parser[B, T] = Parser.Reduce(p, f, partial = true)
+  def collect[B](f: PartialFunction[A, B]): Parser[B, T] =
+    Parser.Reduce(p, f, partial = true)
 
   def ?(): Parser[Option[A], T] = Parser.Repeat(p, 0, 1) map {
     case List()  => None
@@ -83,6 +84,27 @@ object Parser {
   case class Accept[+A, T](a: A) extends Parser[A, T] {
     def parse(in: Input[T], cm: Boolean) = (a, in)
     override def toString = "accept"
+  }
+
+  case class Value[A](name: String) extends Parser[A, Token] {
+    case class Result(a: A) extends Token {
+      override def toString = name + ".Result(" + a + ")"
+    }
+
+    def apply(a: A) = Result(a)
+
+    def parse(in: Input[Token], cm: Boolean) = {
+      if (in.nonEmpty) {
+        in.head match {
+          case Result(a) =>
+            (a, in.tail)
+          case _ =>
+            fail("expected value-token: '" + name + "'", in, cm)
+        }
+      } else {
+        fail("unexpected end of input", in, cm)
+      }
+    }
   }
 
   case class Shift[T]() extends Parser[T, T] {
@@ -175,6 +197,24 @@ object Parser {
     override def toString = {
       p.toString
     }
+  }
+
+  class Scope[K, V](init: Map[K, V] = Map.empty[K, V])
+      extends DynamicVariable(init) with (K => V) {
+    def apply(k: K) =
+      value(k)
+
+    def contains(k: K) =
+      value contains k
+
+    def +=(kv: (K, V)) =
+      value = value + kv
+
+    def update(k: K, v: V) =
+      value = value + (k -> v)
+
+    def within[A, T](p: Parser[A, T]) =
+      Scoped(p, this)
   }
 
   case class Scoped[A, B, T](p: Parser[A, T], state: DynamicVariable[B])

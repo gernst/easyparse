@@ -72,7 +72,7 @@ case class Mixfix[Op, Expr, T](
     if (prec < lower) backtrack("prefix operator of precedence >= " + lower + " expected")
     val (right, in2) = mixfix_app(prec, in1, true)
     val result = unary(op, right)
-    (result, in1)
+    (result, in2)
   }
 
   def postfix_app(

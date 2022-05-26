@@ -20,17 +20,9 @@ object Test {
   object App {
     val from: ((String, Option[List[Expr]]) => Expr) = {
       case (id, None) =>
-        scope lookup id
+        scope(id)
       case (id, Some(args)) =>
-        App(sig lookup id, args)
-    }
-  }
-
-  object Var {
-    val from: ((String, Type) => Var) = { case (name, typ) =>
-      val x = Var(name, typ)
-      scope.extend(x)
-      x
+        App(sig(id), args)
     }
   }
 
@@ -38,23 +30,17 @@ object Test {
 
   def parens[A](p: Parser[A, Token]) = "(" ~ p ~ ")"
 
-  object sig extends DynamicVariable[Map[String, Fun]](Map.empty) {
-    def lookup(id: String) = value(id)
+  object sig extends Scope[String, Fun] {}
+
+  object scope extends Scope[String, Var] {
+    val declare: ((String, Type) => Var) = { case (name, typ) =>
+      val x = Var(name, typ)
+      scope update (name, x)
+      x
+    }
   }
 
-  object scope extends DynamicVariable[Map[String, Var]](Map.empty) {
-    def lookup(id: String) =
-      value(id)
-
-    def extend(x: Var) =
-      value = value + (x.name -> x)
-
-    def here[A, T](p: Parser[A, T]) =
-      Parser.Scoped(p, this)
-  }
-
-  val id = V[String]("id")
-
+  val id = V[String]
   val typ = P(Sort(id))
 
   val expr: Parser[Expr, Token] =
@@ -64,9 +50,9 @@ object Test {
   val app = P(App.from(id ~ args.?))
 
   val quant = P(Forall("forall") | Exists("exists"))
-  val formal = P(Var.from(id ~ ":" ~ typ))
+  val formal = P(scope.declare(id ~ ":" ~ typ))
   val formals = P(formal ~* ",")
-  val bind = P(Bind(scope.here(quant ~ formals ~ "." ~ expr)))
+  val bind = P(Bind(scope within (quant ~ formals ~ "." ~ expr)))
 
   def main(args: Array[String]) {
     val x = id.Result("x")

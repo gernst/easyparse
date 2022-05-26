@@ -4,8 +4,6 @@
 
 package arse
 
-import arse.{Input, Result}
-
 trait Token
 
 trait Scanner[T] {
@@ -36,24 +34,6 @@ object Scanner {
           in.tail
         else
           fail("expected keyword: '" + name + "'", in, cm)
-      } else {
-        fail("unexpected end of input", in, cm)
-      }
-    }
-  }
-
-  case class Value[A](name: String) extends Parser[A, Token] {
-    case class Result(a: A) extends Token
-    def apply(a: A) = Result(a)
-
-    def parse(in: Input[Token], cm: Boolean) = {
-      if (in.nonEmpty) {
-        in.head match {
-          case Result(a) =>
-            (a, in.tail)
-          case _ =>
-            fail("expected value-token: '" + name + "'", in, cm)
-        }
       } else {
         fail("unexpected end of input", in, cm)
       }
