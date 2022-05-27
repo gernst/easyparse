@@ -77,6 +77,16 @@ trait Parser[+A, T] {
         a map { (_, in1) }
     }
   }
+
+  def iterator(in: Input[T]): Iterator[A] = {
+    val p = this.?
+
+    Iterator.unfold(in) {
+      in0 =>
+        val (a, in1) = p parse in0
+        a map { (_, in1) }
+    }
+  }
 }
 
 object Parser {
