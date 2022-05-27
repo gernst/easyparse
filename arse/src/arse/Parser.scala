@@ -67,6 +67,16 @@ trait Parser[+A, T] {
     (z ~ p.*) map { case b ~ as => as.foldLeft(b)(f) }
   def foldRight[B](z: => Parser[B, T])(f: (A, B) => B): Parser[B, T] =
     (p.* ~ z) map { case as ~ b => as.foldRight(b)(f) }
+
+  def stream(in: Input[T]): LazyList[A] = {
+    val p = this.?
+
+    LazyList.unfold(in) {
+      in0 =>
+        val (a, in1) = p parse in0
+        a map { (_, in1) }
+    }
+  }
 }
 
 object Parser {
@@ -200,7 +210,8 @@ object Parser {
   }
 
   class Scope[K, V](init: Map[K, V] = Map.empty[K, V])
-      extends DynamicVariable(init) with (K => V) {
+      extends DynamicVariable(init)
+      with (K => V) {
     def apply(k: K) =
       value(k)
 

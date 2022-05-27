@@ -9,8 +9,8 @@ package object arse {
   type ~[+A, +B] = Tuple2[A, B]
   val ~ = Tuple2
 
-  type Result[+A, T] = (A, Input[T])
   type Input[T] = Seq[T]
+  type Result[+A, T] = (A, Input[T])
   type Scope[K,V] = Parser.Scope[K,V]
 
   case class Error(msg: String, in: Input[_]) extends Exception {
