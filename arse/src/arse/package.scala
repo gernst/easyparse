@@ -3,6 +3,7 @@
 // This code is licensed under MIT license (see LICENSE for details)
 
 import scala.language.implicitConversions
+import scala.util.DynamicVariable
 
 package object arse {
   type ~[+A, +B] = Tuple2[A, B]
@@ -41,6 +42,8 @@ package object arse {
 
   def S[K, V](init: Map[K, V] = Map.empty) =
     new Parser.Scope[K, V](init)
+  def S[A, B, T](p: Parser[A, T], v: DynamicVariable[B]) =
+    new Parser.Scoped[A, B, T](p, v)
 
   def V[A](name: String) =
     new Parser.Value[A](name)
