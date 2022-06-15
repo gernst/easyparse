@@ -29,6 +29,8 @@ package object arse {
     new Parser.Accept[A, T](a)
   def tok[T] =
     new Parser.Shift[T]()
+  def just[A, T](p: Parser[A, T]) =
+    new Scanner.Just[A, T](p)
 
   def map[T, A](f: T => A) =
     tok map f

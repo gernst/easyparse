@@ -40,6 +40,13 @@ object Scanner {
     }
   }
 
+  case class Just[A,T](p: Parser[A,T]) extends Scanner[T] {
+    def scan(in0: Input[T], cm: Boolean) = {
+      val (_, in1) = p.parse(in0, cm)
+      in1
+    }
+  }
+
   case class Choice[T](p: Scanner[T], q: Scanner[T]) extends Scanner[T] {
     def scan(in: Input[T], cm: Boolean) = {
       {
