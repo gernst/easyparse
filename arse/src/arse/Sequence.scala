@@ -18,6 +18,23 @@ object Sequence {
     }
   }
 
+  case class ParserParserFun[A, +B, T](
+      p: Parser[A, T],
+      q: A => Parser[B, T],
+      strict: Boolean
+  ) extends Parser[A ~ B, T] {
+    def parse(in0: Input[T], cm: Boolean) = {
+      val (a, in1) = p parse (in0, cm)
+      val (b, in2) = q(a) parse (in1, strict)
+      ((a, b), in2)
+    }
+
+    override def toString = {
+      if (strict) "(" + p + " ~ " + q + ")"
+      else "(" + p + " ~? " + q + ")"
+    }
+  }
+
   case class ScannerParser[+B, T](
       p: Scanner[T],
       q: Parser[B, T],
