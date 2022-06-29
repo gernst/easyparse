@@ -68,4 +68,15 @@ object implicits {
       (p ~ q) map { case as ~ bs => as ++ bs }
     }
   }
+
+  implicit class ParserList[A, T](ps: List[Parser[A, T]]) {
+    assert(ps.nonEmpty)
+
+    def join(s: Scanner[T]): Parser[List[A], T] = ps match {
+      case last :: Nil =>
+        last :: ret(Nil)
+      case first :: rest =>
+        (first ~ s) :: (rest join s)
+    }
+  }
 }
