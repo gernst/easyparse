@@ -38,6 +38,8 @@ trait Parser[+A, T] {
   def ~@[B](q: A => Parser[B, T]): Parser[A ~ B, T] =
     new Sequence.ParserParserFun(p, q, strict = true)
 
+  def ~>@[B](q: A => Parser[B, T]): Parser[A, T] = (p ~@ q)._1
+
   def <~[B](q: Parser[B, T]): Parser[A, T] = (p ~ q)._1
   def ~>[B](q: Parser[B, T]): Parser[B, T] = (p ~ q)._2
   def ?<~[B](q: Parser[B, T]): Parser[A, T] = (p ?~ q)._1
