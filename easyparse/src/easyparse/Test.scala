@@ -1,3 +1,7 @@
+// EasyParse libary
+// (c) 2022 Gidon Ernst <gidonernst@gmail.com>
+// This code is licensed under MIT license (see LICENSE for details)
+
 package easyparse
 
 import scala.util.DynamicVariable

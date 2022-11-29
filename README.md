@@ -1,7 +1,6 @@
-ARSE Library
-============
+EasyParse Library
+=================
 
-Libary for *automatic recovery of syntactic elements*.
 LL parsing for case classes made simple.
 
 Author: Gidon Ernst <gidonernst@gmail.com>
@@ -30,14 +29,12 @@ language. The main idea is that, given a parser for the arguments of a case
 class constructor, the parser for the case class is instantiated automatically.
 With *arse* you can specify this as follows:
 
-    val name = S("[a-zA-Z]+")
     val expr: Parser[Expr] = P(app | id)
     val id = Id(name)
     val app = App("(" ~ (expr *) ~ ")")
 
 This example demonstrates a few features of the library:
 
--   Primitive combinators are scanners `S("regex")` and literals `"lit"`
 -   Sequential composition `p ~ q`, which is strict in `q` if `p` succeeds
 -   Ordered choice `p | q`, which backtracks if `p` fails and tries `q`
 -   Recursive parsers through `P(p)`, which evaluates `p` lazily
@@ -52,7 +49,7 @@ Dependencies
 
 Compile & Install
 
-    mill arse.jar
+    mill easyparse.jar
 
 Use
 ---
@@ -61,7 +58,6 @@ Parsers `p: Parser[A]` parse a piece of text and return a result `a: A`.
 
 ### Using parsers
 
--   define `implicit val w: Whitespace = ...` (interleave literals with whitespace `w`)
 -   `p.parse(in)` parse `p` on `in: String` or fail with an error
 -   `p.parse(in, cm=false)` try to parse `p` and fail with `backtrack()`
     (do not commit, internally used for backtracking, see also [bk](https://github.com/gernst/bk))
@@ -69,8 +65,6 @@ Parsers `p: Parser[A]` parse a piece of text and return a result `a: A`.
 
 ### Constructing parsers
 
--   `S(regex)` matches and returns part of the input against `regex`
--   `L(string)` matches and returns part of the input against a given `string`
 -   `int`, `double`, `char`, `string`: predefined scanners for numbers, character literals `'x'` and strings `"..."` (support escaping `\'` resp `\"`)
 -   `val n: Parser[T] = P(p)` declares a recursive parser with name `n` that defers evaluation of `p` to allow forward declaration of `p`;
      works in class/object scope when `p` refers to fields, but not when `p` refers to local variables defined later

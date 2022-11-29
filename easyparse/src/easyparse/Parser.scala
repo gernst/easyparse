@@ -1,4 +1,4 @@
-// ARSE Parser libary
+// EasyParse libary
 // (c) 2022 Gidon Ernst <gidonernst@gmail.com>
 // This code is licensed under MIT license (see LICENSE for details)
 
