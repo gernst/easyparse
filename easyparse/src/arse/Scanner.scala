@@ -2,7 +2,7 @@
 // (c) 2022 Gidon Ernst <gidonernst@gmail.com>
 // This code is licensed under MIT license (see LICENSE for details)
 
-package arse
+package easyparse
 
 trait Token
 

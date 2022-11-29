@@ -2,7 +2,7 @@
 // (c) 2022 Gidon Ernst <gidonernst@gmail.com>
 // This code is licensed under MIT license (see LICENSE for details)
 
-package arse
+package easyparse
 
 object implicits {
   implicit def toKW(name: String) = KW(name)

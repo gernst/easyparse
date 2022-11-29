@@ -1,4 +1,4 @@
-package arse
+package easyparse
 
 import scala.util.DynamicVariable
 

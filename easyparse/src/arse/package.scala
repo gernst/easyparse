@@ -5,7 +5,7 @@
 import scala.language.implicitConversions
 import scala.util.DynamicVariable
 
-package object arse {
+package object easyparse {
   type ~[+A, +B] = Tuple2[A, B]
   val ~ = Tuple2
 

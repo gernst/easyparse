@@ -1,4 +1,4 @@
-package arse
+package easyparse
 
 object Sequence {
   case class ParserParser[+A, +B, T](
