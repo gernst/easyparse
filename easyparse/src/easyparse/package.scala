@@ -98,7 +98,7 @@ package object easyparse {
       try {
         first
       } catch {
-        case Backtrack(_) =>
+        case _: Backtrack =>
           second
       }
     }
