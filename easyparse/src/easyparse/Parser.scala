@@ -9,6 +9,7 @@ import java.util.regex.Pattern
 import implicits.ListParser
 import implicits.Parser2
 import scala.util.DynamicVariable
+import scala.collection.IterableFactory
 
 trait Parser[+A, T] {
   p =>
@@ -40,8 +41,8 @@ trait Parser[+A, T] {
 
   def ~>@[B](q: A => Parser[B, T]): Parser[B, T] = (p ~@ q)._2
 
-  def ::@[B >: A](q: A => Parser[List[B], T]): Parser[List[B], T] = (p ~@ q) map {
-    case (a,as) => a :: as
+  def ::@[B >: A](q: A => Parser[List[B], T]): Parser[List[B], T] = (p ~@ q) map { case (a, as) =>
+    a :: as
   }
 
   def <~[B](q: Parser[B, T]): Parser[A, T] = (p ~ q)._1
@@ -77,30 +78,26 @@ trait Parser[+A, T] {
   def foldRight[B](z: => Parser[B, T])(f: (A, B) => B): Parser[B, T] =
     (p.* ~ z) map { case as ~ b => as.foldRight(b)(f) }
 
-  def stream(in: Input[T]): LazyList[A] = {
+  def unfold[CC[+_]](factory: IterableFactory[CC], in: Input[T]): CC[A] = {
     val p = this.?
 
-    LazyList.unfold(in) {
-      in0 =>
-        val (a, in1) = p parse in0
-        a map { (_, in1) }
+    factory.unfold(in) { in0 =>
+      val (a, in1) = p parse in0
+      a map { (_, in1) }
     }
   }
 
-  def iterator(in: Input[T]): Iterator[A] = {
-    val p = this.?
+  def stream(in: Input[T]) = {
+    unfold(LazyList, in)
+  }
 
-    Iterator.unfold(in) {
-      in0 =>
-        val (a, in1) = p parse in0
-        a map { (_, in1) }
-    }
+  def iterator(in: Input[T]): Iterator[A] = {
+    unfold(Iterator, in)
   }
 }
 
 object Parser {
-  case class Recursive[A, T](name: String, p: () => Parser[A, T])
-      extends Parser[A, T] {
+  case class Recursive[A, T](name: String, p: () => Parser[A, T]) extends Parser[A, T] {
     def parse(in: Input[T], cm: Boolean) = p() parse (in, cm)
     override def toString = name
   }
@@ -148,8 +145,7 @@ object Parser {
     override def toString = "token"
   }
 
-  case class Choice[+A, T](p: Parser[A, T], q: Parser[A, T])
-      extends Parser[A, T] {
+  case class Choice[+A, T](p: Parser[A, T], q: Parser[A, T]) extends Parser[A, T] {
     def parse(in: Input[T], cm: Boolean) = {
       {
         p parse (in, false)
@@ -163,8 +159,7 @@ object Parser {
     }
   }
 
-  case class Repeat[+A, T](p: Parser[A, T], min: Int, max: Int)
-      extends Parser[List[A], T] {
+  case class Repeat[+A, T](p: Parser[A, T], min: Int, max: Int) extends Parser[List[A], T] {
     def parse(in: Input[T], cm: Boolean): Result[List[A], T] = {
       parse(0, in, cm)
     }
@@ -194,8 +189,7 @@ object Parser {
     }
   }
 
-  case class Reduce[A, +B, T](p: Parser[A, T], f: A => B, partial: Boolean)
-      extends Parser[B, T] {
+  case class Reduce[A, +B, T](p: Parser[A, T], f: A => B, partial: Boolean) extends Parser[B, T] {
     def parse(in0: Input[T], cm: Boolean) = f match {
       case f: PartialFunction[A, B] if partial =>
         val (a, in1) = p parse (in0, cm)
@@ -215,8 +209,7 @@ object Parser {
     }
   }
 
-  case class Filter[A, T](p: Parser[A, T], f: A => Boolean)
-      extends Parser[A, T] {
+  case class Filter[A, T](p: Parser[A, T], f: A => Boolean) extends Parser[A, T] {
     def parse(in0: Input[T], cm: Boolean) = {
       val (a, in1) = p parse (in0, cm)
       if (!f(a)) fail("expected " + p + " (test failed)", in0, cm)
@@ -228,9 +221,7 @@ object Parser {
     }
   }
 
-  class Scope[K, V](init: Map[K, V] = Map.empty[K, V])
-      extends DynamicVariable(init)
-      with (K => V) {
+  class Scope[K, V](init: Map[K, V] = Map.empty[K, V]) extends DynamicVariable(init) with (K => V) {
     def apply(k: K) =
       value(k)
 
@@ -247,8 +238,7 @@ object Parser {
       Scoped(p, this)
   }
 
-  case class Scoped[A, B, T](p: Parser[A, T], state: DynamicVariable[B])
-      extends Parser[A, T] {
+  case class Scoped[A, B, T](p: Parser[A, T], state: DynamicVariable[B]) extends Parser[A, T] {
     def parse(in0: Input[T], cm: Boolean) = {
       state.withValue(state.value) {
         p.parse(in0, cm)
