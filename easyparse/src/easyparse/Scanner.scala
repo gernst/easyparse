@@ -26,6 +26,16 @@ trait Scanner[T] {
 }
 
 object Scanner {
+  case class Eof[T]() extends Scanner[T] {
+    def scan(in: Input[T], cm: Boolean) = if(in.isEmpty) {
+      in
+    } else {
+      fail("unexpected input", in, cm)
+    }
+
+    override def toString = "$"
+  }
+
   case class Keyword(name: String) extends Token with Scanner[Token] {
     def scan(in: Input[Token], cm: Boolean) = {
       if (in.nonEmpty) {

@@ -26,6 +26,9 @@ trait Parser[+A, T] {
     else a
   }
 
+  def $ =
+    new Sequence.ParserScanner(p, Scanner.Eof(), strict = true)
+
   def ~[B](q: Parser[B, T]): Parser[A ~ B, T] =
     new Sequence.ParserParser(p, q, strict = true)
   def ~(q: Scanner[T]): Parser[A, T] =
