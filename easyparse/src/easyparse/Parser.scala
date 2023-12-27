@@ -84,6 +84,8 @@ trait Parser[+A, T] {
   def unfold[CC[+_]](factory: IterableFactory[CC], in: Input[T]): CC[A] = {
     val p = this.?
 
+    val b = factory.newBuilder[(A, Input[T])]
+
     factory.unfold(in) { in0 =>
       val (a, in1) = p parse in0
       a map { (_, in1) }
@@ -105,8 +107,8 @@ object Parser {
     override def toString = name
   }
 
-  case object Fail extends Parser[Nothing, Any] {
-    def parse(in: Input[Any], cm: Boolean) = fail("unexpected input", in, cm)
+  case class Fail[T]() extends Parser[Nothing, T] {
+    def parse(in: Input[T], cm: Boolean) = fail("unexpected input", in, cm)
     override def toString = "fail"
   }
 
