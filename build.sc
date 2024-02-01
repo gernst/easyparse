@@ -2,7 +2,7 @@ import mill._
 import mill.scalalib._
 
 object easyparse extends ScalaModule {
-  def scalaVersion = "2.13.6"
+  def scalaVersion = "2.13.12"
   def publishVersion = "0.3.0"
 
   def ivyDeps = Agg(
