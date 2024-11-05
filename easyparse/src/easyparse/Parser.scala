@@ -107,8 +107,8 @@ object Parser {
     override def toString = name
   }
 
-  case class Fail[T]() extends Parser[Nothing, T] {
-    def parse(in: Input[T], cm: Boolean) = fail("unexpected input", in, cm)
+  case class Fail[T](hard: Boolean) extends Parser[Nothing, T] {
+    def parse(in: Input[T], cm: Boolean) = fail("unexpected input", in, cm || hard)
     override def toString = "fail"
   }
 
@@ -174,7 +174,7 @@ object Parser {
         val (a, in1) = p parse (in0, cm)
         val (as, in2) = this parse (done + 1, in1, cm)
         (a :: as, in2)
-      } else if (done < max) {
+      } else if (done < max && in0.nonEmpty) {
         val (a, in1) = p parse (in0, false)
         val (as, in2) = this parse (done + 1, in1, cm)
         (a :: as, in2)
